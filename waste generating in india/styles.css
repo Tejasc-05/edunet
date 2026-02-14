@@ -1,0 +1,129 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #9b59b6, #8e44ad);
+}
+
+.container {
+    position: relative;
+    width: 100%;
+    max-width: 400px;
+    padding: 20px;
+}
+
+.card {
+    width: 100%;
+    background: white;
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+}
+
+.portal-title {
+    text-align: center;
+    color: #8e44ad;
+    font-size: 1.2rem;
+    margin-bottom: 30px;
+}
+
+.form-title {
+    text-align: center;
+    color: #333;
+    font-size: 2rem;
+    margin-bottom: 30px;
+    font-weight: 600;
+}
+
+.input-group {
+    position: relative;
+    margin-bottom: 25px;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e3e3e3;
+    border-radius: 10px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.input-group input:focus {
+    border-color: #9b59b6;
+    outline: none;
+}
+
+.input-group label {
+    position: absolute;
+    left: 15px;
+    top: -10px;
+    background: white;
+    padding: 0 5px;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+button {
+    width: 100%;
+    padding: 15px;
+    background: #9b59b6;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+button:hover {
+    background: #8e44ad;
+}
+
+.switch-page {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.switch-page a {
+    color: #9b59b6;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.switch-page a:hover {
+    text-decoration: underline;
+}
+
+.error {
+    color: #ff3860;
+    font-size: 0.9rem;
+    height: 15px;
+    margin-top: 5px;
+    display: none;
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 10px;
+    }
+    
+    .card {
+        padding: 20px;
+    }
+    
+    .form-title {
+        font-size: 1.7rem;
+    }
+}

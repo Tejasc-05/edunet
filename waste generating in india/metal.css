@@ -1,0 +1,198 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+:root {
+    --metal-silver: #bfc1c2;
+    --metal-dark: #23272a;
+    --metal-gray: #6c757d;
+    --metal-shine: #e0e0e0;
+    --text-light: #f8f9fa;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+
+body {
+    background: linear-gradient(135deg, var(--metal-dark) 60%, var(--metal-gray) 100%);
+    min-height: 100vh;
+}
+
+/* Navigation Bar */
+.navbar {
+    background: var(--metal-dark);
+    padding: 1rem 2rem;
+    box-shadow: 0 2px 8px rgba(35, 39, 42, 0.15);
+    position: fixed;
+    width: 100%;
+    top: 0;
+    z-index: 1000;
+}
+
+.nav-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.nav-brand {
+    color: var(--metal-silver);
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.logout-btn {
+    background: transparent;
+    border: 2px solid var(--metal-silver);
+    color: var(--metal-silver);
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.logout-btn:hover {
+    background: var(--metal-silver);
+    color: var(--metal-dark);
+}
+
+/* Main Content */
+.container {
+    max-width: 1200px;
+    margin: 90px auto 20px;
+    padding: 20px;
+}
+
+.page-header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+    opacity: 0;
+    animation: fadeIn 1s ease forwards;
+}
+
+.page-header h1 {
+    color: var(--metal-silver);
+    margin-bottom: 0.5rem;
+}
+
+.subtitle {
+    color: var(--metal-shine);
+    font-size: 1.1rem;
+}
+
+/* Metal Cards Grid */
+.metal-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 2rem;
+    opacity: 0;
+    animation: shineIn 1s ease 0.5s forwards;
+}
+
+.metal-card {
+    background: linear-gradient(120deg, var(--metal-silver) 80%, var(--metal-gray) 100%);
+    padding: 2rem 1.5rem;
+    border-radius: 15px;
+    box-shadow: 0 5px 20px rgba(191, 193, 194, 0.08);
+    transition: transform 0.3s, box-shadow 0.3s, filter 0.3s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    color: var(--metal-dark);
+    position: relative;
+}
+
+.metal-card:hover {
+    transform: rotate(-2deg) scale(1.04);
+    box-shadow: 0 0 25px 5px var(--metal-shine);
+    filter: brightness(1.08);
+}
+
+.metal-icon {
+    font-size: 2.5rem;
+    color: var(--metal-dark);
+    margin-bottom: 1rem;
+    text-shadow: 0 0 8px var(--metal-shine);
+}
+
+.metal-title {
+    color: var(--metal-dark);
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.metal-description {
+    color: var(--metal-gray);
+    margin-bottom: 1.2rem;
+    line-height: 1.5;
+}
+
+.metal-property {
+    background: var(--metal-shine);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    color: var(--metal-dark);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+    box-shadow: 0 2px 8px rgba(191, 193, 194, 0.15);
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes shineIn {
+    from {
+        opacity: 0;
+        filter: brightness(0.7);
+        transform: translateY(40px);
+    }
+    to {
+        opacity: 1;
+        filter: brightness(1);
+        transform: translateY(0);
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .metal-grid {
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 15px;
+    }
+    .metal-grid {
+        grid-template-columns: 1fr;
+        grid-template-rows: repeat(6, 1fr);
+        gap: 1.5rem;
+    }
+    .page-header h1 {
+        font-size: 1.5rem;
+    }
+    .subtitle {
+        font-size: 1rem;
+    }
+}

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Waste generation in India</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-content">
+            <div class="nav-brand">“Waste generation in India</div>
+            <div class="nav-links">
+                <a href="dashboard.html"><i class="fas fa-home"></i> Home</a>
+                <a href="biodegradable.html"><i class="fas fa-leaf"></i> Biodegradable</a>
+                <a href="plastic.html"><i class="fas fa-wine-bottle"></i> Plastic</a>
+                <a href="ewaste.html"><i class="fas fa-laptop"></i> E-Waste</a>
+                <a href="metal.html"><i class="fas fa-cog"></i> Metal</a>
+                <a href="glass.html"><i class="fas fa-glass-martini-alt"></i> Glass</a>
+                <a href="hazardous.html"><i class="fas fa-skull-crossbones"></i> Hazardous</a>
+                <a href="#" id="logoutButton"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Welcome Section -->
+        <div class="welcome-section">
+            <div class="welcome-header">
+                <div class="welcome-text">
+                    <h1>Welcome, <span id="userName">User</span>!</h1>
+                    <p id="currentDate"></p>
+                </div>
+                <div class="location">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span>Bangalore, India — 560061</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Waste Categories Grid -->
+        <div class="waste-grid">
+            <a href="biodegradable.html" class="waste-card">
+                <i class="fas fa-leaf waste-icon"></i>
+                <h3 class="waste-title">Biodegradable Waste</h3>
+                <p class="waste-description">Natural waste that can be broken down by microorganisms. Includes food scraps, leaves, and paper products.</p>
+            </a>
+
+            <a href="plastic.html" class="waste-card">
+                <i class="fas fa-wine-bottle waste-icon"></i>
+                <h3 class="waste-title">Plastic Waste</h3>
+                <p class="waste-description">Non-biodegradable plastic items including bottles, packaging materials, and synthetic products.</p>
+            </a>
+
+            <a href="ewaste.html" class="waste-card">
+                <i class="fas fa-laptop waste-icon"></i>
+                <h3 class="waste-title">E-Waste</h3>
+                <p class="waste-description">Electronic waste including old devices, batteries, and electrical equipment requiring special disposal.</p>
+            </a>
+
+            <a href="metal.html" class="waste-card">
+                <i class="fas fa-cog waste-icon"></i>
+                <h3 class="waste-title">Metal Waste</h3>
+                <p class="waste-description">Scrap metal, tin cans, aluminum items, and other metallic waste materials for recycling.</p>
+            </a>
+
+            <a href="glass.html" class="waste-card">
+                <i class="fas fa-glass-martini-alt waste-icon"></i>
+                <h3 class="waste-title">Glass Waste</h3>
+                <p class="waste-description">Glass bottles, broken glass items, and other glass products that can be recycled.</p>
+            </a>
+
+            <a href="hazardous.html" class="waste-card">
+                <i class="fas fa-skull-crossbones waste-icon"></i>
+                <h3 class="waste-title">Hazardous Waste</h3>
+                <p class="waste-description">Dangerous materials requiring special handling, including chemicals and medical waste.</p>
+            </a>
+
+            
+        </div>
+
+        <!-- Map Section -->
+        <div class="map-section">
+            <h2>Collection Centers Map</h2>
+            <div class="map-container">
+                 <a href="map.html" class="waste-card">
+                <i class="fas fa-map-marked-alt waste-icon"></i>
+                <h3 class="waste-title">Collection Map</h3>
+                <p class="waste-description">View collection centers and pickup locations on an interactive map across India.</p>
+            </a>
+                <p><i class="fas fa-map-marked-alt"></i> Map of waste collection centers will be displayed here</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="dashboard.js"></script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+

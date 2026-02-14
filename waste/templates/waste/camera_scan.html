@@ -1,0 +1,906 @@
+{% extends 'waste/base.html' %}
+{% load static %}
+
+{% block title %}Camera Scan - Eco Waste Manager{% endblock %}
+
+{% block extra_css %}
+<style>
+    .camera-wrapper {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+        position: relative;
+        overflow: hidden;
+        padding: 2rem 20px;
+    }
+
+    .camera-wrapper::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: 0;
+        width: 800px;
+        height: 800px;
+        background: radial-gradient(circle, rgba(8, 145, 178, 0.08) 0%, transparent 70%);
+        animation: float 8s ease-in-out infinite;
+        pointer-events: none;
+    }
+
+    .camera-container {
+        max-width: 900px;
+        margin: 0 auto;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* Header */
+    .camera-header {
+        text-align: center;
+        margin-bottom: 3rem;
+        animation: slideDown 0.6s ease-out;
+    }
+
+    .camera-header h1 {
+        color: #f1f5f9;
+        font-size: 3rem;
+        background: linear-gradient(135deg, #06b6d4, #8b5cf6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 15px;
+    }
+
+    .camera-header h1 i {
+        font-size: 3.5rem;
+    }
+
+    .camera-header p {
+        color: #cbd5e1;
+        font-size: 1.1rem;
+        max-width: 500px;
+        margin: 0 auto;
+    }
+
+    /* Camera Section */
+    .camera-section {
+        background: rgba(30, 41, 59, 0.5);
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(148, 163, 184, 0.15);
+        border-radius: 20px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+        animation: slideUp 0.6s ease-out;
+    }
+
+    .camera-feed-container {
+        position: relative;
+        width: 100%;
+        max-width: 600px;
+        margin: 0 auto;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+        border: 2px solid rgba(6, 182, 212, 0.3);
+    }
+
+    #camera-video {
+        width: 100%;
+        height: auto;
+        display: block;
+        background: #000;
+    }
+
+    #camera-canvas {
+        display: none;
+    }
+
+    .camera-feed-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border: 3px dashed rgba(6, 182, 212, 0.5);
+        border-radius: 16px;
+        pointer-events: none;
+        animation: pulse-border 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-border {
+        0%, 100% {
+            border-color: rgba(6, 182, 212, 0.5);
+            box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.3);
+        }
+        50% {
+            border-color: rgba(6, 182, 212, 0.8);
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
+        }
+    }
+
+    .camera-controls {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        margin-top: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .btn-camera {
+        padding: 14px 32px;
+        border: none;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .btn-capture {
+        background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+        color: #0f172a;
+    }
+
+    .btn-capture:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 32px rgba(6, 182, 212, 0.4);
+    }
+
+    .btn-capture.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .btn-retake {
+        background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        color: white;
+    }
+
+    .btn-retake:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 32px rgba(139, 92, 246, 0.4);
+    }
+
+    .btn-upload {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+    }
+
+    .btn-upload:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 32px rgba(16, 185, 129, 0.4);
+    }
+
+    /* Preview Section */
+    .preview-section {
+        background: rgba(30, 41, 59, 0.5);
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(148, 163, 184, 0.15);
+        border-radius: 20px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+        animation: slideUp 0.6s ease-out;
+        display: none;
+    }
+
+    .preview-section.active {
+        display: block;
+    }
+
+    .preview-image {
+        width: 100%;
+        max-width: 400px;
+        margin: 0 auto 2rem;
+        border-radius: 16px;
+        overflow: hidden;
+        border: 2px solid rgba(6, 182, 212, 0.3);
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    .preview-image img {
+        width: 100%;
+        height: auto;
+        display: block;
+    }
+
+    /* Results Section */
+    .results-section {
+        display: none;
+    }
+
+    .results-section.active {
+        display: block;
+        animation: slideUp 0.6s ease-out;
+    }
+
+    .result-card {
+        background: linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(6, 182, 212, 0.3);
+        border-radius: 20px;
+        padding: 3rem 2rem;
+        text-align: center;
+        margin-bottom: 2rem;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+    }
+
+    .result-icon {
+        font-size: 5rem;
+        margin-bottom: 1.5rem;
+        animation: bounce 0.6s ease;
+    }
+
+    @keyframes bounce {
+        0%, 100% {
+            transform: translateY(0);
+        }
+        50% {
+            transform: translateY(-20px);
+        }
+    }
+
+    .result-category {
+        color: #f1f5f9;
+        font-size: 2.5rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #f1f5f9, #cbd5e1);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 1rem;
+    }
+
+
+    .result-description {
+        color: #cbd5e1;
+        font-size: 1.05rem;
+        margin-bottom: 1.5rem;
+        line-height: 1.8;
+    }
+
+    .result-examples {
+        background: rgba(15, 23, 42, 0.5);
+        border-left: 4px solid #06b6d4;
+        padding: 1.5rem;
+        border-radius: 10px;
+        text-align: left;
+        margin-bottom: 2rem;
+    }
+
+    .result-examples h4 {
+        color: #06b6d4;
+        font-size: 0.95rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 0.5rem;
+        font-weight: 700;
+    }
+
+    .result-examples p {
+        color: #cbd5e1;
+        margin: 0;
+    }
+
+    /* Confidence UI removed - kept layout clean for scan results */
+
+    /* Report Form */
+    .report-form {
+        background: rgba(30, 41, 59, 0.5);
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(148, 163, 184, 0.15);
+        border-radius: 20px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+        display: none;
+    }
+
+    .report-form.active {
+        display: block;
+        animation: slideUp 0.6s ease-out;
+    }
+
+    .report-form h3 {
+        color: #f1f5f9;
+        font-size: 1.5rem;
+        margin-bottom: 2rem;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        display: block;
+        color: #cbd5e1;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-size: 0.95rem;
+    }
+
+    .form-group input,
+    .form-group textarea {
+        width: 100%;
+        padding: 12px 16px;
+        background: rgba(15, 23, 42, 0.5);
+        border: 2px solid rgba(148, 163, 184, 0.2);
+        border-radius: 10px;
+        color: #f1f5f9;
+        font-family: inherit;
+        transition: all 0.3s ease;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: #06b6d4;
+        background: rgba(15, 23, 42, 0.7);
+        box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+    }
+
+    .form-group textarea {
+        resize: vertical;
+        min-height: 100px;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .btn-save {
+        flex: 1;
+        min-width: 150px;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        padding: 14px 32px;
+        border: none;
+        border-radius: 10px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .btn-save:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 32px rgba(16, 185, 129, 0.4);
+    }
+
+    .btn-cancel {
+        flex: 1;
+        min-width: 150px;
+        background: rgba(148, 163, 184, 0.2);
+        color: #cbd5e1;
+        padding: 14px 32px;
+        border: 2px solid rgba(148, 163, 184, 0.3);
+        border-radius: 10px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .btn-cancel:hover {
+        border-color: #8b5cf6;
+        color: #8b5cf6;
+        background: rgba(139, 92, 246, 0.1);
+    }
+
+    /* Loading State */
+    .loading-spinner {
+        display: inline-block;
+        width: 40px;
+        height: 40px;
+        border: 4px solid rgba(6, 182, 212, 0.3);
+        border-top-color: #06b6d4;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    /* Messages */
+    .message-box {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%);
+        border-left: 4px solid #10b981;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        color: #cbd5e1;
+        display: none;
+    }
+
+    .message-box.active {
+        display: block;
+        animation: slideDown 0.3s ease;
+    }
+
+    .message-box.error {
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(239, 68, 68, 0.1) 100%);
+        border-left-color: #ef4444;
+    }
+
+    /* Device Support */
+    .no-camera-message {
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(239, 68, 68, 0.1) 100%);
+        border: 2px solid rgba(239, 68, 68, 0.3);
+        border-radius: 16px;
+        padding: 2rem;
+        text-align: center;
+        color: #fca5a5;
+    }
+
+    .no-camera-message i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        display: block;
+    }
+
+    @media (max-width: 768px) {
+        .camera-header h1 {
+            font-size: 2rem;
+        }
+
+        .camera-controls {
+            gap: 0.5rem;
+        }
+
+        .btn-camera {
+            padding: 12px 20px;
+            font-size: 0.85rem;
+        }
+
+        .result-card {
+            padding: 2rem 1.5rem;
+        }
+
+        .result-icon {
+            font-size: 3.5rem;
+        }
+
+        .result-category {
+            font-size: 1.8rem;
+        }
+
+        .form-actions {
+            flex-direction: column;
+        }
+
+        .btn-save,
+        .btn-cancel {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="camera-wrapper">
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <i class="fas fa-leaf"></i>
+                <span>Eco Waste Manager</span>
+            </div>
+            <div class="nav-menu">
+                <a href="{% url 'waste:dashboard' %}" class="nav-link">
+                    <i class="fas fa-home"></i> Dashboard
+                </a>
+                <a href="{% url 'waste:camera_scan' %}" class="nav-link active">
+                    <i class="fas fa-camera"></i> Camera
+                </a>
+                <a href="{% url 'waste:user_reports' %}" class="nav-link">
+                    <i class="fas fa-list"></i> Reports
+                </a>
+                <a href="{% url 'waste:logout' %}" class="nav-link logout">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="camera-container">
+        <!-- Header -->
+        <div class="camera-header">
+            <h1>
+                <i class="fas fa-camera"></i>
+                Waste Scanner
+            </h1>
+            <p>Scan your waste and let AI identify the type instantly</p>
+        </div>
+
+        <!-- Messages -->
+        <div id="message-box" class="message-box"></div>
+
+        <!-- Camera Section -->
+        <div class="camera-section">
+            <div id="no-camera" class="no-camera-message" style="display: none;">
+                <i class="fas fa-camera-slash"></i>
+                <h3 style="color: #fca5a5; margin-bottom: 1rem;">Camera Not Available</h3>
+                <p>Your device doesn't have a camera or you haven't granted permission. Please check your device settings.</p>
+            </div>
+
+            <div id="camera-area">
+                <div class="camera-feed-container">
+                    <video id="camera-video" playsinline autoplay></video>
+                    <div class="camera-feed-overlay"></div>
+                </div>
+                <canvas id="camera-canvas" width="640" height="480"></canvas>
+
+                <div class="camera-controls">
+                    <button id="btn-capture" class="btn-camera btn-capture">
+                        <i class="fas fa-camera"></i> Capture Photo
+                    </button>
+                    <input type="file" id="file-input" accept="image/*" style="display: none;" />
+                    <button id="btn-upload-file" class="btn-camera btn-upload">
+                        <i class="fas fa-image"></i> Upload Image
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview Section -->
+        <div id="preview-section" class="preview-section">
+            <h2 style="color: #f1f5f9; margin-bottom: 1.5rem;">Photo Preview</h2>
+            <div class="preview-image">
+                <img id="preview-image" src="" alt="Preview">
+            </div>
+            <div class="camera-controls">
+                <button id="btn-retake" class="btn-camera btn-retake">
+                    <i class="fas fa-redo"></i> Retake Photo
+                </button>
+                <button id="btn-analyze" class="btn-camera btn-capture">
+                    <i class="fas fa-magic"></i> Analyze with AI
+                </button>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results-section" class="results-section">
+            <div class="result-card">
+                <div id="result-icon" class="result-icon"></div>
+                <h2 id="result-category" class="result-category"></h2>
+                <p id="result-description" class="result-description"></p>
+                <div id="result-examples" class="result-examples">
+                    <h4>Examples:</h4>
+                    <p id="examples-text"></p>
+                </div>
+            </div>
+
+            <!-- Confidence Breakdown removed -->
+
+            <!-- Report Form -->
+            <div id="report-form" class="report-form">
+                <h3>
+                    <i class="fas fa-save"></i>
+                    Save as Waste Report
+                </h3>
+                <form id="waste-report-form">
+                    <div class="form-group">
+                        <label for="report-quantity">Quantity (kg)</label>
+                        <input type="number" id="report-quantity" name="quantity" step="0.1" min="0" placeholder="Enter weight in kg" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="report-location">Location</label>
+                        <input type="text" id="report-location" name="location" placeholder="Where did you dispose this waste?" value="Bangalore, India">
+                    </div>
+                    <div class="form-group">
+                        <label for="report-notes">Notes (Optional)</label>
+                        <textarea id="report-notes" name="notes" placeholder="Add any additional notes..."></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button id="btn-save-report" type="submit" class="btn-save">
+                            <i class="fas fa-check"></i> Save Report
+                        </button>
+                        <button id="btn-cancel-form" type="button" class="btn-cancel">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="camera-controls">
+                <button id="btn-scan-another" class="btn-camera btn-capture">
+                    <i class="fas fa-sync"></i> Scan Another
+                </button>
+                <button id="btn-view-reports" class="btn-camera" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white;">
+                    <i class="fas fa-list-check"></i> View Reports
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Camera and canvas setup
+    const video = document.getElementById('camera-video');
+    const canvas = document.getElementById('camera-canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // UI Elements
+    const cameraArea = document.getElementById('camera-area');
+    const noCameraMessage = document.getElementById('no-camera');
+    const previewSection = document.getElementById('preview-section');
+    const resultsSection = document.getElementById('results-section');
+    const messageBox = document.getElementById('message-box');
+    const reportForm = document.getElementById('report-form');
+    const previewImage = document.getElementById('preview-image');
+    const fileInput = document.getElementById('file-input');
+    
+    // Buttons
+    const btnCapture = document.getElementById('btn-capture');
+    const btnUploadFile = document.getElementById('btn-upload-file');
+    const btnRetake = document.getElementById('btn-retake');
+    const btnAnalyze = document.getElementById('btn-analyze');
+    const btnSaveReport = document.getElementById('btn-save-report');
+    const btnCancelForm = document.getElementById('btn-cancel-form');
+    const btnScanAnother = document.getElementById('btn-scan-another');
+    const btnViewReports = document.getElementById('btn-view-reports');
+    
+    let currentImageData = null;
+    let currentClassification = null;
+
+    // Initialize camera
+    async function initCamera() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment' },
+                audio: false
+            });
+            video.srcObject = stream;
+            video.play();
+        } catch (error) {
+            console.error('Camera error:', error);
+            cameraArea.style.display = 'none';
+            noCameraMessage.style.display = 'block';
+        }
+    }
+
+    // Capture photo from camera
+    btnCapture.addEventListener('click', () => {
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+            // Set canvas to optimal size (480x640) to reduce data transfer
+            // while maintaining image quality for ML model
+            const targetWidth = 480;
+            const targetHeight = 640;
+            
+            // Calculate aspect ratio from video
+            const videoAspect = video.videoWidth / video.videoHeight;
+            const targetAspect = targetWidth / targetHeight;
+            
+            let srcWidth, srcHeight, srcX, srcY;
+            
+            if (videoAspect > targetAspect) {
+                // Video is wider, fit height
+                srcHeight = video.videoHeight;
+                srcWidth = srcHeight * targetAspect;
+                srcX = (video.videoWidth - srcWidth) / 2;
+                srcY = 0;
+            } else {
+                // Video is taller, fit width
+                srcWidth = video.videoWidth;
+                srcHeight = srcWidth / targetAspect;
+                srcX = 0;
+                srcY = (video.videoHeight - srcHeight) / 2;
+            }
+            
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+            ctx.drawImage(video, srcX, srcY, srcWidth, srcHeight, 0, 0, targetWidth, targetHeight);
+            
+            // Compress JPEG quality
+            currentImageData = canvas.toDataURL('image/jpeg', 0.85);
+            previewImage.src = currentImageData;
+            
+            cameraArea.style.display = 'none';
+            previewSection.classList.add('active');
+            resultsSection.classList.remove('active');
+            reportForm.classList.remove('active');
+        }
+    });
+
+    // Upload file
+    btnUploadFile.addEventListener('click', () => {
+        fileInput.click();
+    });
+
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                currentImageData = event.target.result;
+                previewImage.src = currentImageData;
+                
+                cameraArea.style.display = 'none';
+                previewSection.classList.add('active');
+                resultsSection.classList.remove('active');
+                reportForm.classList.remove('active');
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // Retake photo
+    btnRetake.addEventListener('click', () => {
+        previewSection.classList.remove('active');
+        resultsSection.classList.remove('active');
+        reportForm.classList.remove('active');
+        cameraArea.style.display = 'block';
+        currentImageData = null;
+    });
+
+    // Analyze image with AI
+    btnAnalyze.addEventListener('click', async () => {
+        if (!currentImageData) return;
+        
+        btnAnalyze.disabled = true;
+        btnAnalyze.innerHTML = '<div class="loading-spinner"></div> Analyzing...';
+        
+        try {
+            const formData = new FormData();
+            formData.append('image', currentImageData);
+            formData.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+            
+            const response = await fetch('{% url "waste:classify_api" %}', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                currentClassification = result;
+                displayResults(result);
+                previewSection.classList.remove('active');
+                resultsSection.classList.add('active');
+                reportForm.classList.add('active');
+            } else {
+                showMessage(result.message, 'error');
+            }
+        } catch (error) {
+            showMessage('Error analyzing image: ' + error.message, 'error');
+        } finally {
+            btnAnalyze.disabled = false;
+            btnAnalyze.innerHTML = '<i class="fas fa-magic"></i> Analyze with AI';
+        }
+    });
+
+    // Display results
+    function displayResults(result) {
+        document.getElementById('result-category').textContent = result.category_display;
+        document.getElementById('result-description').textContent = result.description;
+        document.getElementById('examples-text').textContent = result.examples;
+        document.getElementById('result-icon').innerHTML = `<i style="color: ${result.color};" class="${result.icon}"></i>`;
+        
+        // Display confidence breakdown if available
+        // confidence display removed
+    }
+
+    // Confidence breakdown removed from UI
+
+    // Save waste report
+    document.getElementById('waste-report-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const quantity = document.getElementById('report-quantity').value;
+        const location = document.getElementById('report-location').value;
+        const notes = document.getElementById('report-notes').value;
+        
+        if (!quantity || quantity <= 0) {
+            showMessage('Please enter a valid quantity', 'error');
+            return;
+        }
+        
+        btnSaveReport.disabled = true;
+        btnSaveReport.innerHTML = '<div class="loading-spinner"></div> Saving...';
+        
+        try {
+            const formData = new FormData();
+            formData.append('image', currentImageData);
+            formData.append('quantity', quantity);
+            formData.append('location', location);
+            formData.append('notes', notes);
+            formData.append('save_report', 'true');
+            formData.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+            
+            const response = await fetch('{% url "waste:classify_api" %}', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showMessage('✓ ' + result.message, 'success');
+                setTimeout(() => {
+                    window.location.href = '{% url "waste:dashboard" %}';
+                }, 1500);
+            } else {
+                showMessage(result.message, 'error');
+            }
+        } catch (error) {
+            showMessage('Error saving report: ' + error.message, 'error');
+        } finally {
+            btnSaveReport.disabled = false;
+            btnSaveReport.innerHTML = '<i class="fas fa-check"></i> Save Report';
+        }
+    });
+
+    // Cancel form
+    btnCancelForm.addEventListener('click', () => {
+        reportForm.classList.remove('active');
+        document.getElementById('waste-report-form').reset();
+    });
+
+    // Scan another
+    btnScanAnother.addEventListener('click', () => {
+        resultsSection.classList.remove('active');
+        reportForm.classList.remove('active');
+        cameraArea.style.display = 'block';
+        currentImageData = null;
+        currentClassification = null;
+    });
+
+    // View reports
+    btnViewReports.addEventListener('click', () => {
+        window.location.href = '{% url "waste:user_reports" %}';
+    });
+
+    // Show message
+    function showMessage(message, type = 'success') {
+        messageBox.textContent = message;
+        messageBox.className = 'message-box active ' + (type === 'error' ? 'error' : '');
+        
+        if (type !== 'error') {
+            setTimeout(() => {
+                messageBox.classList.remove('active');
+            }, 5000);
+        }
+    }
+
+    // Get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Initialize on load
+    window.addEventListener('load', initCamera);
+</script>
+{% endblock %}

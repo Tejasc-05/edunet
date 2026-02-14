@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biodegradable Waste Credit Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-green: #4CAF50;
+            --light-green: #81C784;
+            --dark-green: #388E3C;
+            --beige: #F5E6D3;
+            --light-beige: #FFF8E1;
+            --text-dark: #2D3436;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--light-beige) 0%, var(--beige) 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            animation: fadeIn 0.8s ease;
+        }
+
+        .header h1 {
+            color: var(--dark-green);
+            margin-bottom: 0.5rem;
+            font-size: 2.5rem;
+        }
+
+        .header p {
+            color: var(--text-dark);
+            font-size: 1.1rem;
+            opacity: 0.8;
+        }
+
+        .credits-display {
+            background: var(--primary-green);
+            color: white;
+            padding: 1rem;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            animation: slideDown 0.8s ease;
+        }
+
+        .credits-display h2 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .credits-display p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            padding: 1rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: fadeIn 0.8s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .card h3 {
+            color: var(--dark-green);
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .card p {
+            color: var(--text-dark);
+            margin-bottom: 1rem;
+            line-height: 1.6;
+        }
+
+        .property {
+            background: var(--light-beige);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            display: inline-block;
+            margin-bottom: 1rem;
+            color: var(--dark-green);
+            font-weight: 500;
+        }
+
+        .credits {
+            color: var(--primary-green);
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+        }
+
+        .add-btn {
+            background: var(--primary-green);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .add-btn:hover {
+            background: var(--dark-green);
+            transform: scale(1.05);
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--dark-green);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 10px;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.3s ease;
+        }
+
+        .notification.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            .container {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Biodegradable Waste Credit System</h1>
+            <p>Earn rewards for managing organic waste responsibly.</p>
+        </div>
+
+        <div class="credits-display">
+            <h2 id="totalCredits">0 Credits</h2>
+            <p>Total Earned Credits</p>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h3>Food Waste</h3>
+                <p>Kitchen scraps, leftover meals, and expired food items.</p>
+                <div class="property">Decomposition: 2-4 weeks</div>
+                <div class="credits">5 Credits per kg</div>
+                <button class="add-btn" onclick="addCredits('Food', 5)">Add Waste</button>
+            </div>
+
+            <div class="card">
+                <h3>Garden Waste</h3>
+                <p>Leaves, grass clippings, and plant trimmings.</p>
+                <div class="property">Compost Value: High</div>
+                <div class="credits">3 Credits per kg</div>
+                <button class="add-btn" onclick="addCredits('Garden', 3)">Add Waste</button>
+            </div>
+
+            <div class="card">
+                <h3>Paper Waste</h3>
+                <p>Newspapers, cardboard, and paper products.</p>
+                <div class="property">Recyclability: 5-7 times</div>
+                <div class="credits">4 Credits per kg</div>
+                <button class="add-btn" onclick="addCredits('Paper', 4)">Add Waste</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <script>
+        // Initialize total credits from localStorage
+        let totalCredits = parseInt(localStorage.getItem('biodegradableCredits')) || 0;
+        updateCreditsDisplay();
+
+        function addCredits(wasteType, credits) {
+            totalCredits += credits;
+            localStorage.setItem('biodegradableCredits', totalCredits);
+            updateCreditsDisplay();
+            showNotification(`+${credits} credits added for ${wasteType} Waste!`);
+        }
+
+        function updateCreditsDisplay() {
+            document.getElementById('totalCredits').textContent = `${totalCredits} Credits`;
+            document.getElementById('totalCredits').style.animation = 'none';
+            document.getElementById('totalCredits').offsetHeight; // Trigger reflow
+            document.getElementById('totalCredits').style.animation = 'fadeIn 0.5s ease';
+        }
+
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Animation for cards on page load
+        document.querySelectorAll('.card').forEach((card, index) => {
+            card.style.animationDelay = `${index * 0.2}s`;
+        });
+    </script>
+</body>
+</html>

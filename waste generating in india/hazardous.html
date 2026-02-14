@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hazardous Waste Management System</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-content">
+            <div class="nav-brand">Hazardous Waste Management Dashboard</div>
+            <button id="logoutButton" class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container">
+        <header class="page-header">
+            <h1>Hazardous Waste Management System</h1>
+            <p class="subtitle">Identify, store, and dispose of hazardous materials safely.</p>
+        </header>
+
+        <div class="hazardous-grid">
+            <!-- Industrial Chemicals Card -->
+            <div class="hazardous-card">
+                <div class="hazardous-icon">☣️</div>
+                <h2 class="hazardous-title">Industrial Chemicals</h2>
+                <p class="hazardous-description">Solvents, acids, and other chemicals from factories and labs.</p>
+                <div class="hazardous-property"><i class="fas fa-biohazard"></i> Toxic</div>
+            </div>
+            <!-- Biomedical Waste Card -->
+            <div class="hazardous-card">
+                <div class="hazardous-icon">⚕️</div>
+                <h2 class="hazardous-title">Biomedical Waste</h2>
+                <p class="hazardous-description">Medical waste from hospitals, clinics, and research centers.</p>
+                <div class="hazardous-property"><i class="fas fa-heartbeat"></i> Infectious</div>
+            </div>
+            <!-- Flammable Waste Card -->
+            <div class="hazardous-card">
+                <div class="hazardous-icon">🔥</div>
+                <h2 class="hazardous-title">Flammable Waste</h2>
+                <p class="hazardous-description">Oils, paints, and other easily ignitable materials.</p>
+                <div class="hazardous-property"><i class="fas fa-fire"></i> Flammable</div>
+            </div>
+            <!-- Radioactive Waste Card -->
+            <div class="hazardous-card">
+                <div class="hazardous-icon">☢️</div>
+                <h2 class="hazardous-title">Radioactive Waste</h2>
+                <p class="hazardous-description">Materials from nuclear plants and medical imaging.</p>
+                <div class="hazardous-property"><i class="fas fa-radiation"></i> Radioactive</div>
+            </div>
+            <!-- Electronic Waste Card -->
+            <div class="hazardous-card">
+                <div class="hazardous-icon">💻</div>
+                <h2 class="hazardous-title">Electronic Waste</h2>
+                <p class="hazardous-description">Batteries, screens, and devices with hazardous components.</p>
+                <div class="hazardous-property"><i class="fas fa-battery-full"></i> Contains heavy metals</div>
+            </div>
+            <!-- Pesticides Card -->
+            <div class="hazardous-card">
+                <div class="hazardous-icon">🧪</div>
+                <h2 class="hazardous-title">Pesticides</h2>
+                <p class="hazardous-description">Chemicals used in agriculture and pest control.</p>
+                <div class="hazardous-property"><i class="fas fa-skull-crossbones"></i> Harmful to health</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="hazardous.js"></script>
+</body>
+</html>

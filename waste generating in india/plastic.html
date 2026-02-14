@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Plastic Waste Credit System</title>
+
+  <!-- Fonts & Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+  <style>
+    :root{
+      --bg: #f4f7fb;
+      --card: #ffffff;
+      --primary: #0a69bd;
+      --primary-dark: #1565c0;
+      --accent: #90caf9;
+      --muted: #616161;
+      --radius: 12px;
+      --shadow: 0 8px 20px rgba(33, 150, 243, 0.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
+    body { background: var(--bg); color: #222; min-height: 100vh; padding: 20px 18px 40px; }
+
+    /* Navbar */
+    .navbar {
+      position: fixed; top: 0; left: 0; right: 0;
+      background: var(--primary-dark); color: #fff;
+      padding: 14px 20px; z-index: 999;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+    }
+    .nav-inner { max-width: 1200px; margin: 0 auto; display:flex; align-items:center; justify-content:space-between; }
+    .brand { font-weight:600; font-size:1.1rem; display:flex; gap:8px; align-items:center; }
+    .brand i { font-size:1.15rem; color: #bbdefb; }
+    .nav-links a { color:#fff; text-decoration:none; margin-left:14px; font-size:0.95rem; opacity:0.95 }
+    .nav-links a:hover { color: var(--accent); }
+
+    /* Page container */
+    .container { max-width: 1200px; margin: 84px auto 0; padding: 0 12px; }
+
+    /* Header */
+    .page-header { text-align:center; margin-bottom:18px; }
+    .page-header h1 { color: var(--primary-dark); font-size:2rem; margin-bottom:6px; }
+    .page-header p { color: var(--muted); font-size:1rem; }
+
+    /* Total credits */
+    .total-box {
+      background: linear-gradient(90deg,var(--primary),var(--primary-dark));
+      color: #fff; padding: 16px; border-radius: 12px;
+      display:flex; align-items:center; justify-content:space-between; gap:12px; margin: 18px 0;
+      box-shadow: var(--shadow);
+    }
+    .total-box .total-left { text-align:left }
+    .total-box h2 { font-size:1.6rem; margin-bottom:4px; }
+    .total-box p { opacity:0.95; margin:0; font-size:0.95rem; }
+
+    /* Grid */
+    .grid {
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      margin-top: 6px;
+    }
+
+    /* Card */
+    .card {
+      background: var(--card); border-radius: var(--radius); padding:18px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.06); transition: transform .28s ease, box-shadow .28s ease;
+      display:flex; flex-direction:column; justify-content:space-between;
+    }
+    .card:hover { transform: translateY(-8px); box-shadow: 0 14px 30px rgba(0,0,0,0.09); }
+
+    .card h3 { color: var(--primary-dark); margin-bottom:8px; font-size:1.1rem; }
+    .card p { color: var(--muted); font-size:.95rem; margin-bottom:10px; line-height:1.4; }
+    .chip { display:inline-block; background:var(--bg); color:var(--primary-dark); border-radius:999px; padding:6px 10px; font-weight:600; margin-bottom:10px; font-size:.85rem; }
+    .credits { font-weight:700; color:var(--primary); margin:10px 0; }
+
+    .card .btn-row { margin-top:10px; display:flex; gap:10px; align-items:center; }
+    .btn { flex:1; border: none; background: var(--primary); color:#fff; padding:10px 12px; border-radius:10px; cursor:pointer; font-weight:600; transition: transform .15s ease, background .15s ease; }
+    .btn:hover { transform: translateY(-3px); background: var(--primary-dark); }
+    .btn.secondary { background: #e3f2fd; color: var(--primary-dark); font-weight:700; }
+
+    /* Toast */
+    .toast {
+      position: fixed; right: 20px; bottom: 20px; background: #0d47a1; color:#fff; padding:12px 18px; border-radius:10px;
+      box-shadow: 0 8px 24px rgba(13,71,161,0.14); opacity:0; transform: translateY(18px); transition: opacity .25s ease, transform .25s ease; z-index:1100;
+    }
+    .toast.show { opacity:1; transform: translateY(0); }
+
+    /* small screens */
+    @media (max-width: 980px) {
+      .grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 620px) {
+      .grid { grid-template-columns: 1fr; }
+      .nav-links { display:none; }
+      body { padding: 14px 10px 40px; }
+      .page-header h1 { font-size:1.5rem; }
+    }
+
+    /* subtle entrance animations */
+    .card { opacity:0; transform: translateY(24px); animation: enter .5s ease forwards; }
+    .card:nth-child(1){ animation-delay: .08s } .card:nth-child(2){ animation-delay: .12s } .card:nth-child(3){ animation-delay: .16s }
+    .card:nth-child(4){ animation-delay: .20s } .card:nth-child(5){ animation-delay: .24s } .card:nth-child(6){ animation-delay: .28s }
+    @keyframes enter { to { opacity:1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <header class="navbar">
+    <div class="nav-inner">
+      <div class="brand"><i class="fas fa-recycle"></i> Waste Management India</div>
+      <nav class="nav-links" aria-label="main navigation">
+        <a href="dashboard.html"><i class="fas fa-home"></i> Home</a>
+        <a href="biodegradable.html"><i class="fas fa-leaf"></i> Biodegradable</a>
+        <a href="plastic.html"><i class="fas fa-wine-bottle"></i> Plastic</a>
+        <a href="ewaste.html"><i class="fas fa-laptop"></i> E-Waste</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container" role="main">
+    <section class="page-header" aria-labelledby="page-title">
+      <h1 id="page-title">Plastic Waste Credit System</h1>
+      <p>Earn eco-points for recycling different types of plastic waste.</p>
+    </section>
+
+    <section class="total-box" aria-live="polite">
+      <div class="total-left">
+        <h2 id="totalCredits">0 Credits</h2>
+        <p>All-time total credits (saved locally)</p>
+      </div>
+      <div>
+        <small style="opacity:.95;">Click a card's button to add plastic waste — you'll be asked for kg.</small>
+      </div>
+    </section>
+
+    <section class="grid" aria-label="plastic types">
+      <!-- PET -->
+      <article class="card" data-type="PET" data-points="30">
+        <div>
+          <h3>PET (Type 1)</h3>
+          <p>Example: Water & soft drink bottles, food containers.</p>
+          <div class="chip">Property: Highly recyclable</div>
+          <div class="credits">30 credits per kg</div>
+        </div>
+        <div class="btn-row">
+          <button class="btn" onclick="onAdd('PET')"><i class="fas fa-plus"></i> Add Plastic Waste</button>
+          <button class="btn secondary" onclick="showInfo('PET')"><i class="fas fa-info-circle"></i></button>
+        </div>
+      </article>
+
+      <!-- HDPE -->
+      <article class="card" data-type="HDPE" data-points="25">
+        <div>
+          <h3>HDPE (Type 2)</h3>
+          <p>Example: Milk jugs, shampoo & detergent bottles.</p>
+          <div class="chip">Property: Durable & strong</div>
+          <div class="credits">25 credits per kg</div>
+        </div>
+        <div class="btn-row">
+          <button class="btn" onclick="onAdd('HDPE')"><i class="fas fa-plus"></i> Add Plastic Waste</button>
+          <button class="btn secondary" onclick="showInfo('HDPE')"><i class="fas fa-info-circle"></i></button>
+        </div>
+      </article>
+
+      <!-- PVC -->
+      <article class="card" data-type="PVC" data-points="20">
+        <div>
+          <h3>PVC (Type 3)</h3>
+          <p>Example: Pipes, window frames, electrical insulation.</p>
+          <div class="chip">Property: Weather resistant</div>
+          <div class="credits">20 credits per kg</div>
+        </div>
+        <div class="btn-row">
+          <button class="btn" onclick="onAdd('PVC')"><i class="fas fa-plus"></i> Add Plastic Waste</button>
+          <button class="btn secondary" onclick="showInfo('PVC')"><i class="fas fa-info-circle"></i></button>
+        </div>
+      </article>
+
+      <!-- LDPE -->
+      <article class="card" data-type="LDPE" data-points="18">
+        <div>
+          <h3>LDPE (Type 4)</h3>
+          <p>Example: Plastic bags, film packaging, squeeze bottles.</p>
+          <div class="chip">Property: Flexible & light</div>
+          <div class="credits">18 credits per kg</div>
+        </div>
+        <div class="btn-row">
+          <button class="btn" onclick="onAdd('LDPE')"><i class="fas fa-plus"></i> Add Plastic Waste</button>
+          <button class="btn secondary" onclick="showInfo('LDPE')"><i class="fas fa-info-circle"></i></button>
+        </div>
+      </article>
+
+      <!-- PP -->
+      <article class="card" data-type="PP" data-points="22">
+        <div>
+          <h3>PP (Type 5)</h3>
+          <p>Example: Food containers, bottle caps, automotive parts.</p>
+          <div class="chip">Property: Heat resistant</div>
+          <div class="credits">22 credits per kg</div>
+        </div>
+        <div class="btn-row">
+          <button class="btn" onclick="onAdd('PP')"><i class="fas fa-plus"></i> Add Plastic Waste</button>
+          <button class="btn secondary" onclick="showInfo('PP')"><i class="fas fa-info-circle"></i></button>
+        </div>
+      </article>
+
+      <!-- PS -->
+      <article class="card" data-type="PS" data-points="15">
+        <div>
+          <h3>PS (Type 6)</h3>
+          <p>Example: Disposable cutlery, foam packaging, CD cases.</p>
+          <div class="chip">Property: Lightweight</div>
+          <div class="credits">15 credits per kg</div>
+        </div>
+        <div class="btn-row">
+          <button class="btn" onclick="onAdd('PS')"><i class="fas fa-plus"></i> Add Plastic Waste</button>
+          <button class="btn secondary" onclick="showInfo('PS')"><i class="fas fa-info-circle"></i></button>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    // data: credit per kg for each type is stored in card dataset
+    const STORAGE_KEY = 'plasticCredits';
+    let totalCredits = parseInt(localStorage.getItem(STORAGE_KEY), 10) || 0;
+    const totalEl = document.getElementById('totalCredits');
+    const toast = document.getElementById('toast');
+
+    // initialize display
+    updateTotalDisplay();
+
+    // attach click handlers are inlined in markup -> use central helper
+    function onAdd(type) {
+      // find the card element to get points
+      const card = document.querySelector(`.card[data-type="${type}"]`);
+      if (!card) return;
+      const pointsPerKg = parseFloat(card.dataset.points) || 0;
+
+      // ask user for weight in kg (allow decimals)
+      let input = prompt(`Enter weight in kg for ${type} (e.g., 0.5 or 2):`, "1");
+      if (input === null) return; // user cancelled
+      input = input.trim();
+      const kg = parseFloat(input);
+      if (isNaN(kg) || kg <= 0) {
+        alert('Please enter a valid positive number for weight (kg).');
+        return;
+      }
+
+      const earned = Math.round(pointsPerKg * kg);
+      totalCredits += earned;
+      localStorage.setItem(STORAGE_KEY, totalCredits);
+      updateTotalDisplay();
+      showToast(`+${earned} credits added for ${type} (${kg} kg)`);
+    }
+
+    function updateTotalDisplay() {
+      totalEl.textContent = `${totalCredits} Credits`;
+      // small highlight animation
+      totalEl.style.transform = 'scale(1.02)';
+      totalEl.style.transition = 'transform 180ms ease';
+      setTimeout(()=> totalEl.style.transform = 'none', 180);
+    }
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add('show');
+      // accessible announcement
+      toast.setAttribute('aria-hidden', 'false');
+      clearTimeout(toast._timeout);
+      toast._timeout = setTimeout(() => {
+        toast.classList.remove('show');
+        toast.setAttribute('aria-hidden', 'true');
+      }, 2800);
+    }
+
+    // optional info quick view
+    function showInfo(type) {
+      const card = document.querySelector(`.card[data-type="${type}"]`);
+      if (!card) return;
+      const name = card.querySelector('h3').textContent;
+      const ex = card.querySelector('p').textContent;
+      const prop = card.querySelector('.chip').textContent;
+      alert(`${name}\n\n${ex}\n\n${prop}`);
+    }
+
+    // expose to global for inline handlers
+    window.onAdd = onAdd;
+    window.showInfo = showInfo;
+
+    // keyboard/enter accessibility: allow pressing Enter on focused button
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && document.activeElement && document.activeElement.classList.contains('btn')) {
+        document.activeElement.click();
+      }
+    });
+  </script>
+</body>
+</html>

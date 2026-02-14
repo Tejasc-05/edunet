@@ -1,0 +1,2 @@
+{{ stats|safe }}
+{"total_waste": {{ total_waste }}, "reports_count": {{ reports_count }}}

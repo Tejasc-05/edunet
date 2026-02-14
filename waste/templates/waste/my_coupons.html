@@ -1,0 +1,120 @@
+{% extends 'waste/base.html' %}
+{% load static %}
+
+{% block title %}My Coupons - Waste Management{% endblock %}
+
+{% block content %}
+<div style="padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh;">
+    <div style="max-width: 1200px; margin: 0 auto;">
+        
+        <!-- Page Header -->
+        <div style="background: white; border-radius: 12px; padding: 25px; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+            <h1 style="margin: 0 0 10px 0; font-size: 32px; font-weight: 800; color: #333;">
+                🎟️ My Redeemed Coupons
+            </h1>
+            <p style="margin: 0; color: #666; font-size: 14px;">View and manage all your redeemed coupons</p>
+        </div>
+
+        <!-- Redeemed Coupons Grid -->
+        {% if user_coupons %}
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px;">
+                {% for user_coupon in user_coupons %}
+                    <div style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                        
+                        <!-- Coupon Header -->
+                        <div style="background: linear-gradient(135deg, {{ user_coupon.coupon.color|default:'#667eea' }} 0%, #764ba2 100% ); color:white; padding:25px ; position:relative;">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+                                <div>
+                                    <h3 style="margin: 0 0 5px 0; font-size: 22px; font-weight: 800;">{{ user_coupon.coupon.name }}</h3>
+                                    <p style="margin: 0; font-size: 13px; opacity: 0.9;">Redeemed on {{ user_coupon.redeemed_at|date:"M d, Y H:i" }}</p>
+                                </div>
+                                <div style="font-size: 40px;">{{ user_coupon.coupon.icon|default:'🎯' }}</div>
+                            </div>
+                        </div>
+
+                        <!-- Coupon Body -->
+                        <div style="padding: 25px;">
+                            <!-- Coupon Code Box -->
+                            <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 2px dashed #ddd;">
+                                <div style="font-size: 12px; color: #999; margin-bottom: 8px;">COUPON CODE</div>
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <code style="font-size: 18px; font-weight: 800; color: #333; letter-spacing: 2px;">{{ user_coupon.coupon.coupon_code }}</code>
+                                    <button onclick="copyCode('{{ user_coupon.coupon.coupon_code }}')" style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 5px 10px;" title="Copy code">
+                                        📋
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Discount Display -->
+                            <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+                                {% if user_coupon.coupon.discount_percentage %}
+                                    <div style="font-size: 28px; font-weight: 800;">{{ user_coupon.coupon.discount_percentage }}% OFF</div>
+                                {% elif user_coupon.coupon.discount_amount %}
+                                    <div style="font-size: 28px; font-weight: 800;">₹{{ user_coupon.coupon.discount_amount }} OFF</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Description -->
+                            <p style="margin: 0 0 15px 0; color: #666; font-size: 14px; line-height: 1.6;">{{ user_coupon.coupon.description }}</p>
+
+                            <!-- Status -->
+                            <div style="display: flex; align-items: center; gap: 10px; padding: 12px; background: #f0f0f0; border-radius: 8px; margin-bottom: 15px;">
+                                <svg style="width: 18px; height: 18px; color: #4caf50;" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                </svg>
+                                <span style="font-size: 13px; font-weight: 600; color: #333;">
+                                    {% if user_coupon.used %}
+                                        Used on {{ user_coupon.used_at|date:"M d, Y H:i" }}
+                                    {% else %}
+                                        Ready to Use
+                                    {% endif %}
+                                </span>
+                            </div>
+
+                            <!-- Validity -->
+                            {% if user_coupon.coupon.valid_until %}
+                                <div style="display: flex; align-items: center; gap: 10px; padding: 12px; background: #fff3cd; border-radius: 8px; margin-bottom: 15px;">
+                                    <svg style="width: 18px; height: 18px; color: #ff9800;" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 5v14a2 2 0 01-2 2H4a2 2 0 01-2-2V5a1 1 0 011-1h1V2a1 1 0 112 0v2h8V2a1 1 0 112 0v2h1a1 1 0 011 1zm-1 9a1 1 0 100-2 1 1 0 000 2zm-6 2a1 1 0 100-2 1 1 0 000 2zm6 0a1 1 0 100-2 1 1 0 000 2zM5 12a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+                                    </svg>
+                                    <span style="font-size: 13px; color: #333;">
+                                        Valid until <strong>{{ user_coupon.coupon.valid_until|date:"M d, Y" }}</strong>
+                                    </span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <!-- Empty State -->
+            <div style="background: white; border-radius: 12px; padding: 80px 20px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                <div style="font-size: 64px; margin-bottom: 20px;">🎁</div>
+                <h3 style="color: #333; font-size: 24px; margin: 0 0 10px 0; font-weight: 800;">No Redeemed Coupons Yet</h3>
+                <p style="color: #666; font-size: 16px; margin: 0 0 30px 0;">Start disposing waste to earn points and redeem coupons!</p>
+                <a href="{% url 'waste:add_report' %}" style="display: inline-block; padding: 12px 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: 600; transition: transform 0.2s ease;">
+                    Report Waste & Earn Points
+                </a>
+            </div>
+        {% endif %}
+
+        <!-- Navigation -->
+        <div style="display: flex; gap: 15px; margin-top: 30px; justify-content: center; flex-wrap: wrap;">
+            <a href="{% url 'waste:coupons' %}" style="display: inline-block; padding: 12px 30px; background: white; color: #667eea; text-decoration: none; border-radius: 8px; font-weight: 600; transition: transform 0.2s ease;">
+                🎯 Browse More Coupons
+            </a>
+            <a href="{% url 'waste:dashboard' %}" style="display: inline-block; padding: 12px 30px; background: white; color: #667eea; text-decoration: none; border-radius: 8px; font-weight: 600; transition: transform 0.2s ease;">
+                ← Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+    function copyCode(code) {
+        navigator.clipboard.writeText(code).then(() => {
+            alert('Coupon code copied to clipboard!');
+        });
+    }
+</script>
+{% endblock %}

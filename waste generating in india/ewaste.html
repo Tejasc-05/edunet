@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>E-Waste Credit System</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+  <style>
+    :root{
+      --bg-dark: #081029;
+      --panel: #0e2240;
+      --silver: #cfd8dc;
+      --neon: #39ff14;
+      --muted: #b0bec5;
+      --card-shadow: 0 10px 30px rgba(0,0,0,0.6);
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; font-family: 'Poppins', sans-serif; margin:0; padding:0; }
+    body {
+      background: linear-gradient(160deg, var(--bg-dark) 0%, #071021 60%);
+      color: var(--silver);
+      min-height: 100vh;
+      padding: 22px;
+    }
+
+    /* Navbar */
+    .navbar {
+      position: fixed; top: 0; left:0; right:0;
+      background: linear-gradient(90deg,#07183a,#0f2a55);
+      color: var(--silver);
+      padding: 12px 18px;
+      display:flex; align-items:center; justify-content:space-between;
+      z-index: 999;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.6);
+    }
+    .brand { display:flex; align-items:center; gap:10px; font-weight:600; color:var(--neon); }
+    .brand i { transform: rotate(12deg); }
+    .nav-links { display:flex; gap:12px; align-items:center; }
+    .nav-links a { color:var(--silver); text-decoration:none; font-size:0.95rem; opacity:0.95; }
+    .nav-links a:hover { color:var(--neon); }
+
+    /* Page container */
+    .container { max-width:1200px; margin: 84px auto 40px; padding: 0 12px; }
+
+    .header { text-align:center; margin-bottom:18px; }
+    .header h1 { color: var(--neon); font-size:2rem; margin-bottom:6px; letter-spacing:0.4px; }
+    .header p { color:var(--muted); margin:0; }
+
+    .total-panel {
+      display:flex; justify-content:space-between; align-items:center;
+      background: linear-gradient(90deg,#061b33,#082c49);
+      padding:14px 18px; border-radius:12px; color:var(--silver);
+      box-shadow: var(--card-shadow); margin: 18px 0;
+    }
+    .total-panel h2 { color:var(--neon); margin:0; font-size:1.5rem; }
+    .total-panel p { margin:0; color:var(--muted); }
+
+    /* Grid */
+    .grid {
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap:18px;
+      margin-top:8px;
+    }
+
+    /* Card */
+    .card {
+      background: linear-gradient(180deg,#0b2540,#071a2e);
+      border: 1px solid rgba(57,255,20,0.06);
+      padding:18px;
+      border-radius: var(--radius);
+      box-shadow: 0 8px 26px rgba(0,0,0,0.65);
+      transition: transform .28s ease, box-shadow .28s ease, box-shadow .28s;
+      display:flex; flex-direction:column; justify-content:space-between;
+      min-height:170px;
+      position:relative;
+      overflow:hidden;
+    }
+    .card::after{
+      content: ""; position:absolute; inset: -2px; background: linear-gradient(120deg, rgba(57,255,20,0.05), transparent 30%); pointer-events:none; mix-blend-mode:screen;
+    }
+    .card:hover { transform: translateY(-10px); box-shadow: 0 18px 40px rgba(0,0,0,0.7); }
+
+    .card h3 { color: var(--neon); margin-bottom:8px; font-size:1.1rem; }
+    .card p { color:var(--muted); margin-bottom:10px; font-size:0.95rem; line-height:1.4; }
+    .badge { display:inline-block; padding:6px 10px; border-radius:999px; background: rgba(255,255,255,0.03); color:var(--silver); font-weight:600; margin-bottom:10px; font-size:0.86rem; }
+    .points { color: var(--neon); font-weight:700; margin-bottom:10px; }
+
+    .card .controls { display:flex; gap:10px; align-items:center; margin-top:auto; }
+    .btn {
+      display:inline-flex; align-items:center; justify-content:center;
+      gap:8px; padding:10px 12px; border-radius:10px; border:none; cursor:pointer;
+      font-weight:600; color:#062033; background:var(--neon);
+      transition: transform .12s ease, box-shadow .12s ease;
+      box-shadow: 0 6px 18px rgba(57,255,20,0.08);
+    }
+    .btn:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(57,255,20,0.12); }
+    .btn.ghost {
+      background: transparent; color:var(--silver); border:1px solid rgba(255,255,255,0.06);
+      box-shadow:none; font-weight:600;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed; right: 20px; bottom: 20px; background: #051229; color:var(--neon); padding:12px 18px;
+      border-radius:10px; box-shadow: 0 8px 30px rgba(0,0,0,0.6); opacity:0; transform: translateY(12px);
+      transition: opacity .25s ease, transform .25s ease; z-index:1100; border:1px solid rgba(57,255,20,0.12);
+    }
+    .toast.show { opacity:1; transform:none; }
+
+    /* responsive */
+    @media (max-width: 1024px) { .grid { grid-template-columns: repeat(2,1fr); } }
+    @media (max-width: 640px) {
+      .grid { grid-template-columns: 1fr; gap:12px; }
+      .nav-links { display:none; }
+      body { padding:18px 12px; }
+      .header h1 { font-size:1.4rem; }
+      .total-panel { flex-direction:column; gap:8px; align-items:flex-start; }
+    }
+
+    /* entrance animation */
+    .card { opacity:0; transform: translateY(18px); animation: fadeUp .52s ease forwards; }
+    .card:nth-child(1){ animation-delay: .06s } .card:nth-child(2){ animation-delay: .10s } .card:nth-child(3){ animation-delay: .14s }
+    .card:nth-child(4){ animation-delay: .18s } .card:nth-child(5){ animation-delay: .22s } .card:nth-child(6){ animation-delay: .26s }
+    @keyframes fadeUp { to { opacity:1; transform:none } }
+  </style>
+</head>
+<body>
+  <header class="navbar" role="banner">
+    <div class="brand"><i class="fas fa-microchip"></i> E-Waste Hub</div>
+    <nav class="nav-links" aria-label="Main">
+      <a href="dashboard.html"><i class="fas fa-home"></i> Home</a>
+      <a href="ewaste.html"><i class="fas fa-bolt"></i> E-Waste</a>
+      <a href="biodegradable.html"><i class="fas fa-leaf"></i> Bio</a>
+    </nav>
+  </header>
+
+  <main class="container" role="main">
+    <section class="header" aria-labelledby="title">
+      <h1 id="title">E-Waste Management Credit System</h1>
+      <p>Earn rewards for safe disposal and recycling of electronic waste.</p>
+    </section>
+
+    <section class="total-panel" aria-live="polite">
+      <div>
+        <h2 id="totalCredits">0 Credits</h2>
+        <p>Accumulated credits (persisted locally)</p>
+      </div>
+      <div style="text-align:right;">
+        <small style="color:var(--muted)">Click "Add Waste" on a card and enter weight (kg).</small>
+      </div>
+    </section>
+
+    <section class="grid" aria-label="e-waste categories">
+      <!-- Card 1: IT Equipment -->
+      <article class="card" data-type="IT Equipment" data-points="80" role="article" aria-labelledby="it-title">
+        <div>
+          <h3 id="it-title">IT Equipment</h3>
+          <p>Example: Laptops, desktops, servers — often contain precious metals and reusable components.</p>
+          <div class="badge">Property: Contains precious metals</div>
+          <div class="points">80 credits per kg</div>
+        </div>
+        <div class="controls">
+          <button class="btn" onclick="addWaste('IT Equipment')"><i class="fas fa-plus"></i> Add Waste</button>
+          <button class="btn ghost" onclick="showInfo('IT Equipment')"><i class="fas fa-info-circle"></i></button>
+        </div>
+      </article>
+
+      <!-- Card 2: Lighting -->
+      <article class="card" data-type="Lighting" data-points="50" role="article" aria-labelledby="lighting-title">
+        <div>
+          <h3 id="lighting-title">Lighting</h3>
+          <p>Example: CFLs, LED fixtures — may include hazardous elements and reusable components.</p>
+          <div class="badge">Property: Contains hazardous components</div>
+          <div class="points">50 credits per kg</div>
+        </div>
+        <div class="controls">
+          <button class="btn" onclick="addWaste('Lighting')"><i class="fas fa-plus"></i> Add Waste</button>
+          <button class="btn ghost" onclick="showInfo('Lighting')"><i class="fas fa-info-circle"></i></button>
+        </div>
+      </article>
+
+      <!-- Card 3: Small Appliances -->
+      <article class="card" data-type="Small Appliances" data-points="35" role="article" aria-labelledby="small-title">
+        <div>
+          <h3 id="small-title">Small Appliances</h3>
+          <p>Example: Toasters, kettles, blenders — common household devices with recoverable parts.</p>
+          <div class="badge">Property: Repairable components</div>
+          <div class="points">35 credits per kg</div>
+        </div>
+        <div class="controls">
+          <button class="btn" onclick="addWaste('Small Appliances')"><i class="fas fa-plus"></i> Add Waste</button>
+          <button class="btn ghost" onclick="showInfo('Small Appliances')"><i class="fas fa-info-circle"></i></button>
+        </div>
+      </article>
+
+      <!-- Card 4: Large Appliances -->
+      <article class="card" data-type="Large Appliances" data-points="60" role="article" aria-labelledby="large-title">
+        <div>
+          <h3 id="large-title">Large Appliances</h3>
+          <p>Example: Refrigerators, washing machines — heavy items with high metal content.</p>
+          <div class="badge">Property: High metal content</div>
+          <div class="points">60 credits per kg</div>
+        </div>
+        <div class="controls">
+          <button class="btn" onclick="addWaste('Large Appliances')"><i class="fas fa-plus"></i> Add Waste</button>
+          <button class="btn ghost" onclick="showInfo('Large Appliances')"><i class="fas fa-info-circle"></i></button>
+        </div>
+      </article>
+
+      <!-- Card 5: Batteries -->
+      <article class="card" data-type="Batteries" data-points="120" role="article" aria-labelledby="batt-title">
+        <div>
+          <h3 id="batt-title">Batteries</h3>
+          <p>Example: Lead-acid, lithium-ion, NiMH — hazardous and high-value for recovery.</p>
+          <div class="badge">Property: Hazardous / high-value materials</div>
+          <div class="points">120 credits per kg</div>
+        </div>
+        <div class="controls">
+          <button class="btn" onclick="addWaste('Batteries')"><i class="fas fa-plus"></i> Add Waste</button>
+          <button class="btn ghost" onclick="showInfo('Batteries')"><i class="fas fa-info-circle"></i></button>
+        </div>
+      </article>
+
+      <!-- Card 6: Cables & Wiring -->
+      <article class="card" data-type="Cables & Wiring" data-points="40" role="article" aria-labelledby="cable-title">
+        <div>
+          <h3 id="cable-title">Cables & Wiring</h3>
+          <p>Example: Power cables, coax, network cables — copper and valuable conductors inside.</p>
+          <div class="badge">Property: Contains copper</div>
+          <div class="points">40 credits per kg</div>
+        </div>
+        <div class="controls">
+          <button class="btn" onclick="addWaste('Cables & Wiring')"><i class="fas fa-plus"></i> Add Waste</button>
+          <button class="btn ghost" onclick="showInfo('Cables & Wiring')"><i class="fas fa-info-circle"></i></button>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <!-- Toast -->
+  <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <script>
+    (function(){
+      const STORAGE_KEY = 'ewasteCredits';
+      let totalCredits = parseInt(localStorage.getItem(STORAGE_KEY), 10) || 0;
+      const totalEl = document.getElementById('totalCredits');
+      const toast = document.getElementById('toast');
+
+      function init() { updateTotal(); }
+
+      function addWaste(type) {
+        const card = document.querySelector(`.card[data-type="${type}"]`);
+        if (!card) return;
+        const perKg = parseFloat(card.dataset.points) || 0;
+        // Prompt for weight (kg)
+        let value = prompt(`Enter weight in kg for "${type}" (e.g. 0.5 or 2):`, "1");
+        if (value === null) return; // cancelled
+        value = value.trim();
+        const kg = parseFloat(value);
+        if (isNaN(kg) || kg <= 0) {
+          alert('Please enter a valid positive number for weight (kg).');
+          return;
+        }
+        const earned = Math.round(perKg * kg);
+        totalCredits += earned;
+        localStorage.setItem(STORAGE_KEY, totalCredits);
+        updateTotal();
+        showToast(`+${earned} credits added for ${type} (${kg} kg)`);
+      }
+
+      function updateTotal(){
+        totalEl.textContent = `${totalCredits} Credits`;
+        // brief highlight
+        totalEl.style.transform = 'scale(1.03)';
+        totalEl.style.transition = 'transform 160ms ease';
+        setTimeout(()=> totalEl.style.transform = 'none', 160);
+      }
+
+      function showToast(message){
+        toast.textContent = message;
+        toast.classList.add('show');
+        clearTimeout(toast._t);
+        toast._t = setTimeout(()=> toast.classList.remove('show'), 3000);
+      }
+
+      function showInfo(type) {
+        const card = document.querySelector(`.card[data-type="${type}"]`);
+        if (!card) return;
+        const title = card.querySelector('h3').innerText;
+        const ex = card.querySelector('p').innerText;
+        const badge = card.querySelector('.badge').innerText;
+        alert(`${title}\n\n${ex}\n\n${badge}`);
+      }
+
+      // expose functions used by inline onclick
+      window.addWaste = addWaste;
+      window.showInfo = showInfo;
+
+      // Init
+      init();
+
+      // Optional: clear stored credits on pressing ctrl+shift+c (developer convenience)
+      document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'c') {
+          if (confirm('Clear stored E-Waste credits?')) {
+            totalCredits = 0;
+            localStorage.removeItem(STORAGE_KEY);
+            updateTotal();
+            showToast('E-Waste credits cleared');
+          }
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

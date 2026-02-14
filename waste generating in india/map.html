@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>My Interactive Map — India</title>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-sA+6kY6b7w3k2w7k2TVE0jzKkH6Q0sGq0o9g6L/0G6M=" crossorigin=""/>
+
+  <style>
+    :root {
+      --header-height: 72px;
+      --accent: #0b6ef6;
+      --bg: #f6f9ff;
+      --card: #ffffff;
+      --muted: #52606a;
+      --radius: 12px;
+    }
+
+    html,body { height:100%; margin:0; font-family: "Poppins", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background: var(--bg); color: #0b2540; }
+
+    /* Header */
+    header.app-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: var(--header-height);
+      background: linear-gradient(90deg, #ffffffcc, #f0f7ffcc);
+      display:flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 3px 12px rgba(12,40,80,0.08);
+      z-index: 1000;
+      backdrop-filter: blur(6px);
+    }
+    .header-inner { max-width: 1200px; width:100%; padding: 0 16px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .title {
+      display:flex; flex-direction:column;
+    }
+    .title h1 { margin:0; font-size:1.25rem; color: var(--accent); letter-spacing:0.2px; }
+    .title p { margin:2px 0 0; color: var(--muted); font-size:0.9rem; }
+
+    .controls {
+      display:flex; gap:8px; align-items:center;
+    }
+    .btn {
+      background: var(--accent);
+      color: #fff;
+      border:none;
+      padding:8px 12px;
+      border-radius:8px;
+      cursor:pointer;
+      font-weight:600;
+      box-shadow: 0 6px 16px rgba(11,110,246,0.12);
+    }
+    .btn.ghost {
+      background: transparent;
+      color: var(--accent);
+      border: 1px solid rgba(11,110,246,0.12);
+      box-shadow: none;
+    }
+    .small {
+      background: #fff;
+      color: var(--muted);
+      border: 1px solid rgba(12,40,80,0.04);
+      padding: 6px 8px;
+      border-radius:8px;
+      font-size:0.85rem;
+    }
+
+    /* Main container */
+    main.container {
+      max-width: 1200px;
+      margin: calc(var(--header-height) + 20px) auto 24px;
+      padding: 0 16px;
+    }
+
+    /* Map box */
+    .map-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 10px 28px rgba(12,40,80,0.06);
+      border: 1px solid rgba(12,40,80,0.04);
+    }
+
+    #map {
+      width:100%;
+      /* adjust height for mobile/desktop: use viewport height minus header and margins */
+      height: calc(100vh - var(--header-height) - 80px);
+      min-height: 320px;
+      display:block;
+    }
+
+    /* Info bar below the map */
+    .info-row {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:12px 16px;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .info-left { color: var(--muted); font-size:0.95rem; }
+    .info-right { display:flex; gap:8px; align-items:center; }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      background: rgba(11,110,246,0.95);
+      color: white;
+      padding: 12px 16px;
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(11,110,246,0.14);
+      transform: translateY(8px);
+      opacity: 0;
+      transition: transform .18s ease, opacity .18s ease;
+      z-index: 1200;
+      font-weight:600;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+
+    /* Responsive tweaks */
+    @media (max-width: 900px) {
+      .header-inner { padding: 0 12px; }
+      .title h1 { font-size:1.05rem; }
+      #map { height: calc(100vh - var(--header-height) - 110px); }
+    }
+    @media (max-width: 480px) {
+      .title p { display:none; }
+      .controls { gap:6px; }
+      .btn { padding:7px 10px; font-size:0.9rem; }
+      #map { height: calc(100vh - var(--header-height) - 120px); }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="app-header" role="banner">
+    <div class="header-inner">
+      <div class="title">
+        <h1>My Interactive Map</h1>
+        <p>Center: India. Click map to drop markers. Use geolocation to add your location.</p>
+      </div>
+
+      <div class="controls" role="toolbar" aria-label="map controls">
+        <button id="locateBtn" class="btn" title="Find my location"><i class="fas fa-location-arrow"></i>&nbsp;My location</button>
+        <button id="clearBtn" class="btn ghost" title="Clear dropped markers">Clear markers</button>
+        <div class="small" id="zoomLevel">Zoom: —</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container" role="main">
+    <div class="map-card" role="region" aria-label="Interactive map">
+      <div id="map" aria-hidden="false"></div>
+      <div class="info-row">
+        <div class="info-left">Click anywhere on the map to drop a marker. Markers show coordinates and timestamp.</div>
+        <div class="info-right">
+          <div class="small">Tiles: OpenStreetMap</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-sA+6kY6b7w3k2w7k2TVE0jzKkH6Q0sGq0o9g6L/0G6M=" crossorigin=""></script>
+
+  <script>
+    (function () {
+      // Default center: India
+      const indiaLatLng = [20.5937, 78.9629];
+      const defaultZoom = 5;
+
+      // state
+      const markers = []; // store L.marker instances we created (not internal Leaflet ones)
+      let userMarker = null;
+      let userAccuracyCircle = null;
+
+      // DOM
+      const toastEl = document.getElementById('toast');
+      const zoomLevelEl = document.getElementById('zoomLevel');
+      const locateBtn = document.getElementById('locateBtn');
+      const clearBtn = document.getElementById('clearBtn');
+
+      // Initialize map
+      const map = L.map('map', {
+        center: indiaLatLng,
+        zoom: defaultZoom,
+        zoomControl: true,
+        attributionControl: true,
+      });
+
+      // Add tile layer (OpenStreetMap)
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
+
+      // Update zoom display
+      function updateZoomDisplay() {
+        zoomLevelEl.textContent = `Zoom: ${map.getZoom()}`;
+      }
+      map.on('zoomend', updateZoomDisplay);
+      updateZoomDisplay();
+
+      // Utility: show toast
+      let toastTimer;
+      function showToast(msg, ms = 2600) {
+        clearTimeout(toastTimer);
+        toastEl.textContent = msg;
+        toastEl.classList.add('show');
+        toastTimer = setTimeout(() => toastEl.classList.remove('show'), ms);
+      }
+
+      // Click to drop marker
+      map.on('click', function (e) {
+        const lat = e.latlng.lat.toFixed(6);
+        const lng = e.latlng.lng.toFixed(6);
+        const ts = new Date().toLocaleString();
+        const m = L.marker(e.latlng, { riseOnHover: true }).addTo(map);
+        m.bindPopup(`<strong>Marker</strong><br>${lat}, ${lng}<br><small>${ts}</small>`).openPopup();
+        markers.push(m);
+        showToast(`Marker added at ${lat}, ${lng}`);
+      });
+
+      // Geolocation: add marker for user's current location
+      function locateUser() {
+        if (!navigator.geolocation) {
+          alert('Geolocation is not supported by your browser.');
+          return;
+        }
+        showToast('Locating…', 4000);
+
+        navigator.geolocation.getCurrentPosition(function (pos) {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          const accuracy = pos.coords.accuracy || 0;
+
+          // remove previous user markers if any
+          if (userMarker) { map.removeLayer(userMarker); userMarker = null; }
+          if (userAccuracyCircle) { map.removeLayer(userAccuracyCircle); userAccuracyCircle = null; }
+
+          userMarker = L.marker([lat, lng], {
+            title: 'Your location',
+            riseOnHover: true,
+            icon: L.circleMarker([lat, lng], { radius: 10 }).options // fallback
+          }).addTo(map);
+
+          userMarker.bindPopup(`<strong>You are here</strong><br>${lat.toFixed(6)}, ${lng.toFixed(6)}<br><small>Accuracy: ${Math.round(accuracy)} m</small>`).openPopup();
+
+          userAccuracyCircle = L.circle([lat, lng], {
+            radius: accuracy,
+            color: '#1e90ff',
+            fillColor: '#1e90ff',
+            fillOpacity: 0.06,
+            weight: 1
+          }).addTo(map);
+
+          // center map on user with a comfortable zoom
+          map.setView([lat, lng], Math.max(12, map.getZoom()));
+          showToast('Location found ✔');
+        }, function (err) {
+          // Geolocation error
+          let message = 'Unable to retrieve your location.';
+          if (err.code === 1) message = 'Permission denied. Please allow location access.';
+          else if (err.code === 2) message = 'Position unavailable.';
+          else if (err.code === 3) message = 'Location request timed out.';
+          alert(message);
+          showToast('Location error');
+        }, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        });
+      }
+
+      // Buttons
+      locateBtn.addEventListener('click', function () {
+        locateUser();
+      });
+
+      clearBtn.addEventListener('click', function () {
+        if (!markers.length && !userMarker) {
+          showToast('No markers to clear');
+          return;
+        }
+
+        if (!confirm('Clear all dropped markers? (This will not remove your location marker)')) return;
+
+        // remove only markers in markers[] (user dropped markers)
+        while (markers.length) {
+          const m = markers.pop();
+          map.removeLayer(m);
+        }
+        showToast('Dropped markers cleared');
+      });
+
+      // Try auto-locate on load (non-blocking)
+      // Note: some users prefer to click 'My location' intentionally. We attempt after a short delay.
+      setTimeout(() => {
+        // ask permission silently by trying geolocation with short timeout
+        // comment out the next line if you don't want auto-prompt
+        // locateUser();
+      }, 1500);
+
+      // Show initial tooltip for first-time users
+      setTimeout(() => {
+        showToast('Tap map to add markers • Use "My location" to mark yourself');
+      }, 900);
+    })();
+  </script>
+
+  <!-- FontAwesome (icons used in buttons) -->
+  <script src="https://kit.fontawesome.com/3f7b2f6f73.js" crossorigin="anonymous"></script>
+</body>
+</html>
