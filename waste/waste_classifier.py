@@ -330,12 +330,13 @@ class WasteClassifier:
             b = buf.getvalue()
             img_b64 = base64.b64encode(b).decode('ascii')
 
+            # Improved prompt: be explicit about JSON-only response and expected keys
             prompt = (
-                "You are an assistant that classifies images of waste into one of: "
-                "biodegradable, plastic, ewaste, metal, glass, hazardous. "
-                "Given the attached image (base64), return a JSON object with keys "
-                "for each category and numeric scores summing approximately to 1.0. "
-                "Respond only with JSON.\n\nImageBase64:" + img_b64
+                "You are a helpful assistant. Classify the attached image into exactly one or more of the following waste categories: "
+                "biodegradable, plastic, ewaste, metal, glass, hazardous.\n\n"
+                "Return ONLY a JSON object (no explanatory text) where keys are the category names: \"biodegradable\", \"plastic\", \"ewaste\", \"metal\", \"glass\", \"hazardous\" "
+                "and values are numeric scores (floats or ints). The scores should reflect relative confidence; they do not need to sum to 1.0 but that is preferred.\n\n"
+                "If you cannot classify, return zeros for all categories.\n\nImageBase64:" + img_b64
             )
 
             # Use ChatCompletion if available
@@ -420,6 +421,12 @@ class WasteClassifier:
                         if cat in key:
                             scores[cat] = float(v)
                             break
+
+            # Telemetry: log OpenAI response and parsed scores to a CSV for later analysis
+            try:
+                self._log_openai_telemetry({'raw_response': text, 'parsed': parsed, 'scores': scores})
+            except Exception:
+                pass
             total = sum(scores.values())
             if total > 0:
                 scores = {k: v/total for k, v in scores.items()}
@@ -431,6 +438,32 @@ class WasteClassifier:
         except Exception as e:
             print(f"OpenAI classification error: {e}")
             return None
+
+    def _log_openai_telemetry(self, entry):
+        """Append telemetry data about OpenAI responses to a CSV file for analysis."""
+        try:
+            import csv
+            from datetime import datetime
+            out_dir = os.path.join(os.getcwd(), 'reports')
+            os.makedirs(out_dir, exist_ok=True)
+            path = os.path.join(out_dir, 'openai_telemetry.csv')
+
+            # Flatten some fields
+            row = {
+                'timestamp': datetime.utcnow().isoformat(),
+                'raw_response': (entry.get('raw_response') or '')[:1000].replace('\n', ' '),
+                'parsed_keys': ','.join(sorted((entry.get('parsed') or {}).keys())),
+                'scores_summary': json.dumps(entry.get('scores') or {})
+            }
+
+            write_header = not os.path.exists(path)
+            with open(path, 'a', encoding='utf-8', newline='') as f:
+                writer = csv.DictWriter(f, fieldnames=list(row.keys()))
+                if write_header:
+                    writer.writeheader()
+                writer.writerow(row)
+        except Exception:
+            pass
     
     def _classify_by_features(self, img):
         """Advanced feature-based classification"""

@@ -100,6 +100,35 @@ python manage.py runserver
 
 The application will be available at: `http://127.0.0.1:8000/`
 
+## OpenAI Integration (optional)
+
+To enable improved classification via OpenAI vision/text models:
+
+1. Create and activate a virtual environment and install requirements (includes `openai`):
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+2. Set your OpenAI API key (macOS / Linux):
+
+```bash
+export OPENAI_API_KEY="sk-..."
+```
+
+3. Run the verification script (this will call OpenAI and may incur usage):
+
+```bash
+python scripts/verify_openai.py path/to/photo.jpg
+```
+
+Notes:
+- OpenAI usage is optional; the classifier falls back to local heuristics and ML models if the API key or package is not available.
+- Telemetry of OpenAI responses is appended to `reports/openai_telemetry.csv` for auditing and prompt improvement.
+
 ## Usage
 
 ### User Registration
