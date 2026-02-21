@@ -13,14 +13,6 @@ from PIL import Image
 import io
 import warnings
 warnings.filterwarnings('ignore')
-import json
-import base64
-
-try:
-    import openai
-    OPENAI_AVAILABLE = True
-except Exception:
-    OPENAI_AVAILABLE = False
 
 try:
     from tensorflow.keras.applications import MobileNetV2, ResNet50
@@ -82,13 +74,6 @@ class WasteClassifier:
         self.models = {}
         self.confidence_threshold = 0.4
         self.use_ml = TF_AVAILABLE
-        # OpenAI usage: enabled only if package present and API key provided
-        self.use_openai = OPENAI_AVAILABLE and bool(os.getenv('OPENAI_API_KEY'))
-        if self.use_openai and OPENAI_AVAILABLE:
-            try:
-                openai.api_key = os.getenv('OPENAI_API_KEY')
-            except Exception:
-                self.use_openai = False
         if self.use_ml:
             self._load_models()
         
@@ -101,7 +86,7 @@ class WasteClassifier:
                 'shape': 'irregular'
             },
             'plastic': {
-                'colors': [(0, 0, 139), (30, 144, 255), (255, 192, 203), (0, 255, 127)],  # Blue, pink, cyan
+                'colors': [(0, 0, 139), (30, 144, 255), (255, 192, 203), (0, 255, 127), (255, 255, 255), (192, 192, 192), (255, 0, 0), (0, 255, 0), (255, 255, 0)],  # Multiple colors
                 'keywords': ['bottle', 'bag', 'container', 'plastic', 'smooth', 'synthetic'],
                 'texture': 'smooth',
                 'shape': 'geometric'
@@ -113,13 +98,13 @@ class WasteClassifier:
                 'shape': 'geometric'
             },
             'metal': {
-                'colors': [(192, 192, 192), (169, 169, 169), (211, 211, 211), (128, 128, 128)],  # Silver, gray
+                'colors': [(192, 192, 192), (169, 169, 169), (211, 211, 211), (128, 128, 128), (255, 255, 255), (64, 64, 64), (224, 224, 224)],  # Gray, white, metallic colors
                 'keywords': ['can', 'aluminum', 'steel', 'metal', 'shiny', 'reflective'],
                 'texture': 'metallic',
                 'shape': 'geometric'
             },
             'glass': {
-                'colors': [(173, 216, 230), (240, 248, 255), (0, 255, 255), (255, 182, 193)],  # Light blue, cyan
+                'colors': [(173, 216, 230), (240, 248, 255), (0, 255, 255), (255, 182, 193), (255, 255, 255), (200, 220, 240), (220, 240, 255), (192, 192, 192)],  # Light colors
                 'keywords': ['glass', 'bottle', 'jar', 'transparent', 'clear', 'reflective'],
                 'texture': 'smooth',
                 'shape': 'geometric'
@@ -134,17 +119,61 @@ class WasteClassifier:
     
     def _load_models(self):
         """Load multiple pre-trained models for ensemble voting"""
+        # By default avoid downloading ImageNet weights at runtime (may fail in restricted envs)
+        use_imagenet = os.environ.get('WASTE_LOAD_IMAGENET', '0') == '1'
+        weights_arg = 'imagenet' if use_imagenet else None
+
         try:
-            self.models['mobilenet'] = MobileNetV2(weights='imagenet', input_shape=(224, 224, 3))
-            print("✓ MobileNetV2 model loaded")
+            self.models['mobilenet'] = MobileNetV2(weights=weights_arg, input_shape=(224, 224, 3))
+            msg = "✓ MobileNetV2 model loaded"
+            if not use_imagenet:
+                msg += " (initialized without ImageNet weights)"
+            print(msg)
         except Exception as e:
             print(f"Warning: Could not load MobileNetV2: {e}")
-        
+
         try:
-            self.models['resnet'] = ResNet50(weights='imagenet', input_shape=(224, 224, 3))
-            print("✓ ResNet50 model loaded")
+            self.models['resnet'] = ResNet50(weights=weights_arg, input_shape=(224, 224, 3))
+            msg = "✓ ResNet50 model loaded"
+            if not use_imagenet:
+                msg += " (initialized without ImageNet weights)"
+            print(msg)
         except Exception as e:
             print(f"Warning: Could not load ResNet50: {e}")
+
+            # Attempt to load fine-tuned mobilenet weights (6-class classifier)
+        try:
+            weights_path = os.path.join('waste', 'model_weights', 'mobilenet_finetuned.weights.h5')
+            class_idx_path = os.path.join('waste', 'model_weights', 'class_indices.json')
+            if os.path.exists(weights_path) and TF_AVAILABLE:
+                from tensorflow.keras.layers import GlobalAveragePooling2D, Dropout, Dense
+                from tensorflow.keras.models import Model
+                # Instantiate base WITHOUT ImageNet weights to avoid downloads; we'll load finetuned weights next
+                base = MobileNetV2(include_top=False, weights=None, input_shape=(224, 224, 3))
+                x = base.output
+                x = GlobalAveragePooling2D()(x)
+                x = Dropout(0.3)(x)
+                out = Dense(len(WASTE_CATEGORIES), activation='softmax', name='waste_output')(x)
+                ft_model = Model(inputs=base.input, outputs=out)
+                ft_model.load_weights(weights_path)
+                self.models['mobilenet_finetuned'] = ft_model
+                print("✓ Fine-tuned MobileNet weights loaded")
+
+                # Load class index mapping if present
+                if os.path.exists(class_idx_path):
+                    try:
+                        import json
+                        with open(class_idx_path, 'r') as f:
+                            class_indices = json.load(f)
+                        # invert mapping to index -> class name
+                        inv = {int(v): k for k, v in class_indices.items()}
+                        self.class_index_map = inv
+                    except Exception:
+                        self.class_index_map = None
+                else:
+                    self.class_index_map = None
+        except Exception as e:
+            print(f"Warning: Could not load fine-tuned mobilenet weights: {e}")
     
     def classify_image(self, image_file):
         """
@@ -180,15 +209,6 @@ class WasteClassifier:
             color_scores = self._classify_by_colors(img)
             if color_scores:
                 scores['colors'] = color_scores
-
-            # Method 4: OpenAI vision/text assistance (optional)
-            if self.use_openai:
-                try:
-                    openai_scores = self._classify_with_openai(img)
-                    if openai_scores:
-                        scores['openai'] = openai_scores
-                except Exception:
-                    pass
             
             # Ensemble voting - combine all methods
             final_scores = self._ensemble_voting(scores)
@@ -254,6 +274,18 @@ class WasteClassifier:
                 mobilenet_input = mobilenet_preprocess(img_array.copy())
                 mobilenet_preds = self.models['mobilenet'].predict(mobilenet_input, verbose=0)
                 ensemble_scores['mobilenet'] = self._map_imagenet_to_waste(mobilenet_preds[0])
+
+            # Fine-tuned MobileNet (outputs waste-class probs)
+            if 'mobilenet_finetuned' in self.models:
+                mt_input = mobilenet_preprocess(img_array.copy())
+                ft_preds = self.models['mobilenet_finetuned'].predict(mt_input, verbose=0)[0]
+                # Map indices to category names
+                if hasattr(self, 'class_index_map') and self.class_index_map:
+                    ft_scores = {self.class_index_map[i]: float(ft_preds[i]) for i in range(len(ft_preds))}
+                else:
+                    classes = list(WASTE_CATEGORIES.values())
+                    ft_scores = {classes[i]: float(ft_preds[i]) for i in range(len(ft_preds))}
+                ensemble_scores['mobilenet_finetuned'] = ft_scores
             
             # ResNet50 predictions
             if 'resnet' in self.models:
@@ -276,32 +308,39 @@ class WasteClassifier:
             return {cat: 1/6 for cat in WASTE_CATEGORIES.values()}
     
     def _map_imagenet_to_waste(self, predictions):
-        """Map ImageNet predictions to waste categories"""
+        """Map ImageNet predictions to waste categories - EXPANDED"""
         # ImageNet class mappings for waste categories
         category_map = {
             'biodegradable': ['apple', 'orange', 'banana', 'cantaloupe', 'broccoli', 'cauliflower', 'corn', 'potato',
-                             'acorn', 'artichoke', 'leaf', 'moss', 'hay', 'wood', 'straw', 'seaweed'],
-            'plastic': ['shopping_bag', 'plastic_bag', 'perfume', 'water_bottle', 'wine_bottle', 'bottle', 
-                       'cup', 'bowl', 'plate', 'carton', 'packet', 'box'],
-            'ewaste': ['computer', 'laptop', 'mobile_phone', 'telephone', 'monitor', 'keyboard', 
-                       'mouse', 'printer', 'camera', 'speaker', 'headphones', 'circuit_board'],
-            'metal': ['can', 'aluminum_can', 'tin_can', 'bucket', 'kettle', 'pot', 'pan', 
-                     'fork', 'knife', 'spoon', 'wire', 'chain', 'padlock'],
-            'glass': ['glass', 'goblet', 'wine_glass', 'beer_glass', 'jar', 'vase', 'bottle'],
-            'hazardous': ['smoke', 'fire', 'flame', 'warning_sign', 'sign', 'caution', 'dangerous', 'toxic']
+                             'acorn', 'artichoke', 'leaf', 'moss', 'hay', 'wood', 'straw', 'seaweed', 'carrot', 'lettuce',
+                             'lemon', 'coconut', 'pumpkin', 'mushroom', 'pineapple', 'papaya', 'kiwi', 'avocado', 'peach'],
+            'plastic': ['shopping_bag', 'plastic_bag', 'perfume', 'water_bottle', 'wine_bottle', 'bottle', 'plastic_bottle',
+                       'cup', 'bowl', 'plate', 'carton', 'packet', 'box', 'toy', 'teddy_bear', 'doll', 'bucket', 'trash_can',
+                       'container', 'sock', 'shoe', 'lampshade', 'desk', 'chair', 'backpack', 'suitcase'],
+            'ewaste': ['computer', 'laptop', 'mobile_phone', 'telephone', 'monitor', 'keyboard', 'mouse', 'printer', 
+                       'camera', 'speaker', 'headphones', 'circuit_board', 'remote', 'oscilloscope', 'microphone', 'switch',
+                       'plug', 'extension_cord', 'power_strip', 'battery', 'projector', 'scanner'],
+            'metal': ['can', 'aluminum_can', 'tin_can', 'bucket', 'kettle', 'pot', 'pan', 'fork', 'knife', 'spoon', 'wire', 
+                     'chain', 'padlock', 'nail', 'screw', 'bolt', 'gate', 'fence', 'bell', 'gong', 'pipe', 'ladder', 'bicycle',
+                     'motorcycle', 'car_mirror', 'trophy', 'cooking_pot'],
+            'glass': ['glass', 'goblet', 'wine_glass', 'beer_glass', 'jar', 'vase', 'bottle', 'glass_bottle', 'drinking_glass',
+                     'champagne_glass', 'margarita_glass', 'pitcher', 'bowl', 'eyeglasses', 'lens', 'mirror', 'aquarium',
+                     'window', 'prism'],
+            'hazardous': ['smoke', 'fire', 'flame', 'warning_sign', 'sign', 'caution', 'dangerous', 'toxic', 'skull', 'biohazard',
+                         'radioactive', 'chemical', 'poison', 'explosion']
         }
         
         waste_scores = {cat: 0.0 for cat in WASTE_CATEGORIES.values()}
         
-        # Get top predictions
-        top_pred_indices = np.argsort(predictions)[-20:][::-1]
+        # Get top predictions (increased for better detection)
+        top_pred_indices = np.argsort(predictions)[-30:][::-1]
         
         for idx in top_pred_indices:
             pred_score = predictions[idx]
             # Map to waste categories
             for waste_cat, keywords in category_map.items():
                 waste_cat_lower = waste_cat.lower()
-                waste_scores[waste_cat_lower] = max(waste_scores[waste_cat_lower], pred_score * 0.6)
+                waste_scores[waste_cat_lower] = max(waste_scores[waste_cat_lower], pred_score * 0.7)
         
         # Normalize
         total = sum(waste_scores.values())
@@ -311,159 +350,6 @@ class WasteClassifier:
             waste_scores = {cat: 1/6 for cat in WASTE_CATEGORIES.values()}
         
         return waste_scores
-
-    def _classify_with_openai(self, img):
-        """Use OpenAI (vision/text) to get an additional classification signal.
-
-        Returns a dict of normalized scores per category or None on failure.
-        Requires OPENAI_API_KEY in environment and the `openai` package available.
-        """
-        if not OPENAI_AVAILABLE:
-            return None
-
-        try:
-            # Resize to reduce payload
-            tmp = img.copy()
-            tmp.thumbnail((512, 512))
-            buf = io.BytesIO()
-            tmp.save(buf, format='JPEG', quality=80)
-            b = buf.getvalue()
-            img_b64 = base64.b64encode(b).decode('ascii')
-
-            # Improved prompt: be explicit about JSON-only response and expected keys
-            prompt = (
-                "You are a helpful assistant. Classify the attached image into exactly one or more of the following waste categories: "
-                "biodegradable, plastic, ewaste, metal, glass, hazardous.\n\n"
-                "Return ONLY a JSON object (no explanatory text) where keys are the category names: \"biodegradable\", \"plastic\", \"ewaste\", \"metal\", \"glass\", \"hazardous\" "
-                "and values are numeric scores (floats or ints). The scores should reflect relative confidence; they do not need to sum to 1.0 but that is preferred.\n\n"
-                "If you cannot classify, return zeros for all categories.\n\nImageBase64:" + img_b64
-            )
-
-            # Use ChatCompletion if available
-            try:
-                resp = openai.ChatCompletion.create(
-                    model=os.getenv('OPENAI_CHAT_MODEL', 'gpt-4o-mini'),
-                    messages=[{'role': 'user', 'content': prompt}],
-                    temperature=0.0,
-                    max_tokens=300
-                )
-                text = resp['choices'][0]['message']['content']
-            except Exception:
-                # Fallback to Completion API
-                resp = openai.Completion.create(
-                    engine=os.getenv('OPENAI_COMPLETION_MODEL', 'text-davinci-003'),
-                    prompt=prompt,
-                    max_tokens=300,
-                    temperature=0.0
-                )
-                text = resp['choices'][0]['text']
-
-            # Extract JSON from response if present, otherwise try to parse key:value lines
-            parsed = None
-            try:
-                start = text.find('{')
-                end = text.rfind('}')
-                if start != -1 and end != -1:
-                    json_text = text[start:end+1]
-                    parsed = json.loads(json_text)
-                else:
-                    # Try to parse lines like "biodegradable: 0.2" or "biodegradable 20%"
-                    parsed = {}
-                    for line in text.splitlines():
-                        if ':' in line:
-                            k, v = line.split(':', 1)
-                        elif '\t' in line:
-                            k, v = line.split('\t', 1)
-                        else:
-                            parts = line.strip().split()
-                            if len(parts) >= 2:
-                                k, v = parts[0], ' '.join(parts[1:])
-                            else:
-                                continue
-                        k = k.strip().lower()
-                        v = v.strip().rstrip('%')
-                        try:
-                            parsed[k] = float(v)
-                        except Exception:
-                            # try to extract number with regex
-                            import re
-                            m = re.search(r"([0-9]+\.?[0-9]*)", v)
-                            if m:
-                                parsed[k] = float(m.group(1))
-            except Exception:
-                parsed = None
-
-            # Map and normalize; parsed may have different key names, so attempt to match
-            scores = {cat: 0.0 for cat in WASTE_CATEGORIES.values()}
-            if parsed:
-                for k, v in parsed.items():
-                    key = k.strip().lower()
-                    # Direct match
-                    if key in scores:
-                        scores[key] = float(v)
-                        continue
-                    # Try singular/plural and simple synonyms
-                    if key.endswith('s') and key[:-1] in scores:
-                        scores[key[:-1]] = float(v)
-                        continue
-                    syn_map = {
-                        'e-waste': 'ewaste',
-                        'e waste': 'ewaste',
-                        'electronic': 'ewaste',
-                        'electronics': 'ewaste',
-                        'bio': 'biodegradable'
-                    }
-                    if key in syn_map:
-                        scores[syn_map[key]] = float(v)
-                        continue
-                    # If key contains category name
-                    for cat in scores.keys():
-                        if cat in key:
-                            scores[cat] = float(v)
-                            break
-
-            # Telemetry: log OpenAI response and parsed scores to a CSV for later analysis
-            try:
-                self._log_openai_telemetry({'raw_response': text, 'parsed': parsed, 'scores': scores})
-            except Exception:
-                pass
-            total = sum(scores.values())
-            if total > 0:
-                scores = {k: v/total for k, v in scores.items()}
-            else:
-                scores = {cat: 1/6 for cat in WASTE_CATEGORIES.values()}
-
-            return scores
-
-        except Exception as e:
-            print(f"OpenAI classification error: {e}")
-            return None
-
-    def _log_openai_telemetry(self, entry):
-        """Append telemetry data about OpenAI responses to a CSV file for analysis."""
-        try:
-            import csv
-            from datetime import datetime
-            out_dir = os.path.join(os.getcwd(), 'reports')
-            os.makedirs(out_dir, exist_ok=True)
-            path = os.path.join(out_dir, 'openai_telemetry.csv')
-
-            # Flatten some fields
-            row = {
-                'timestamp': datetime.utcnow().isoformat(),
-                'raw_response': (entry.get('raw_response') or '')[:1000].replace('\n', ' '),
-                'parsed_keys': ','.join(sorted((entry.get('parsed') or {}).keys())),
-                'scores_summary': json.dumps(entry.get('scores') or {})
-            }
-
-            write_header = not os.path.exists(path)
-            with open(path, 'a', encoding='utf-8', newline='') as f:
-                writer = csv.DictWriter(f, fieldnames=list(row.keys()))
-                if write_header:
-                    writer.writeheader()
-                writer.writerow(row)
-        except Exception:
-            pass
     
     def _classify_by_features(self, img):
         """Advanced feature-based classification"""
@@ -479,9 +365,9 @@ class WasteClassifier:
             for category, waste_info in self.waste_features.items():
                 category_score = 0.0
                 
-                # Color matching (40% weight)
+                # Color matching (40% weight) - more lenient scoring
                 color_dist = self._color_distance(features['dominant_color'], waste_info['colors'])
-                color_score = 1.0 - (color_dist / 255.0)
+                color_score = 1.0 - min(color_dist / 350.0, 1.0)  # More lenient threshold
                 category_score += color_score * 0.4
                 
                 # Texture analysis (30% weight)
@@ -509,42 +395,54 @@ class WasteClassifier:
             return {cat: 0.16 for cat in WASTE_CATEGORIES.values()}
     
     def _classify_by_colors(self, img):
-        """Color-based waste classification (rebalance to avoid ewaste bias)"""
+        """Color-based waste classification - IMPROVED"""
         try:
             img_array = np.array(img)
-
-            # Get color histogram
-            hist_r = np.histogram(img_array[:, :, 0], bins=10, range=(0, 256))[0].astype(float)
-            hist_g = np.histogram(img_array[:, :, 1], bins=10, range=(0, 256))[0].astype(float)
-            hist_b = np.histogram(img_array[:, :, 2], bins=10, range=(0, 256))[0].astype(float)
-
-            # Normalize histograms (guard against zero division)
-            if hist_r.sum() == 0 or hist_g.sum() == 0 or hist_b.sum() == 0:
-                return {cat: 1/6 for cat in WASTE_CATEGORIES.values()}
-
-            hist_r = hist_r / hist_r.sum()
-            hist_g = hist_g / hist_g.sum()
-            hist_b = hist_b / hist_b.sum()
-
-            # Higher-level features
-            features = self._extract_image_features(img_array)
-            edge_density = self._analyze_edges(img_array, 'irregular')
-
+            
+            # Get color histogram with more bins for better granularity
+            hist_r = np.histogram(img_array[:, :, 0], bins=16, range=(0, 256))[0]
+            hist_g = np.histogram(img_array[:, :, 1], bins=16, range=(0, 256))[0]
+            hist_b = np.histogram(img_array[:, :, 2], bins=16, range=(0, 256))[0]
+            
+            # Normalize histograms
+            hist_r = hist_r / (hist_r.sum() + 1e-8)
+            hist_g = hist_g / (hist_g.sum() + 1e-8)
+            hist_b = hist_b / (hist_b.sum() + 1e-8)
+            
+            # Calculate color statistics
+            mean_r = np.mean(img_array[:, :, 0])
+            mean_g = np.mean(img_array[:, :, 1])
+            mean_b = np.mean(img_array[:, :, 2])
+            
             scores = {}
-
-            # Score by color composition + brightness + edge cues (clamped to >=0)
-            scores['biodegradable'] = max(0.0, hist_g[5:8].sum() * 0.45 + hist_r[2:5].sum() * 0.25 + features['brightness'] * 0.3)
-            scores['plastic'] = max(0.0, hist_b[4:8].sum() * 0.45 + hist_g[5:8].sum() * 0.25 + features['brightness'] * 0.3)
-            scores['ewaste'] = max(0.0, (1 - hist_g[3:7].mean()) * 0.3 + (1 - features['brightness']) * 0.4 + edge_density * 0.3)
-            scores['metal'] = max(0.0, (hist_r.mean() - hist_g.mean()) * 0.25 + features['brightness'] * 0.5 + edge_density * 0.25)
-            scores['glass'] = max(0.0, hist_b[5:9].sum() * 0.35 + (hist_r.mean() + hist_g.mean()) * 0.2 + features['brightness'] * 0.45)
-            scores['hazardous'] = max(0.0, hist_r[6:10].sum() * 0.45 + hist_g[0:3].sum() * 0.2 + features['brightness'] * 0.35)
-
-            # Normalize to probabilities
+            
+            # Biodegradable: Green/Brown tones
+            scores['biodegradable'] = (hist_g[5:12].sum() * 0.6 + hist_r[2:8].sum() * 0.3 + (1 - hist_b[8:16].sum()) * 0.1)
+            
+            # Plastic: Blue, Pink, Cyan, White - predominantly cool colors  
+            scores['plastic'] = (hist_b[8:16].sum() * 0.5 + hist_g[6:14].sum() * 0.3 + (mean_b > mean_r) * 0.2)
+            
+            # E-waste: Dark colors (Gray, Black, Dark colors)
+            scores['ewaste'] = ((1 - hist_g[6:16].mean() * 2) * 0.6 + (1 - hist_r[6:16].mean() * 2) * 0.4)
+            
+            # Metal: Bright grays, high contrast, similar R and G values (neutral tones)
+            gray_similarity = 1.0 - (abs(mean_r - mean_g) / 256.0)
+            scores['metal'] = (hist_r[10:16].sum() * 0.4 + gray_similarity * 0.5 + (mean_r > 100) * 0.1)
+            
+            # Glass: Bright, light colors (high brightness), blues and cyans
+            brightness = (mean_r + mean_g + mean_b) / 3.0
+            scores['glass'] = ((brightness / 255.0) * 0.5 + hist_b[10:16].sum() * 0.3 + hist_g[10:16].sum() * 0.2)
+            
+            # Hazardous: Red, Orange, Yellow tones
+            scores['hazardous'] = (hist_r[10:16].sum() * 0.6 + (mean_r > mean_g) * 0.3 + (mean_r > mean_b) * 0.1)
+            
+            # Normalize
             total = sum(scores.values())
             if total > 0:
-                scores = {k: v / total for k, v in scores.items()}
-
+                scores = {k: v/total for k, v in scores.items()}
+            else:
+                scores = {cat: 1/6 for cat in WASTE_CATEGORIES.values()}
+            
             return scores
         except Exception as e:
             print(f"Color classification error: {e}")
@@ -554,12 +452,11 @@ class WasteClassifier:
         """Combine multiple classification methods through weighted voting"""
         combined_scores = {cat: 0.0 for cat in WASTE_CATEGORIES.values()}
         
-        # Weights for each method (include optional OpenAI signal)
+        # Weights for each method - IMPROVED for better plastic, metal, glass detection
         weights = {
             'neural_net': 0.35,  # 35% - Neural networks
-            'features': 0.30,    # 30% - Advanced features
-            'colors': 0.15,      # 15% - Color analysis
-            'openai': 0.20       # 20% - OpenAI vision/text assistance
+            'features': 0.35,    # 35% - Advanced features (color, texture, brightness)
+            'colors': 0.30       # 30% - Color analysis (IMPROVED algorithm)
         }
         
         for method, method_scores in scores_dict.items():

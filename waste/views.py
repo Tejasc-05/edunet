@@ -336,10 +336,11 @@ def coupons_view(request):
     user_points, _ = UserPoints.objects.get_or_create(user=request.user)
     all_coupons = Coupon.objects.filter(active=True)
     
-    # Mark which coupons user can afford
+    # Mark which coupons user can afford and count quantity owned
     for coupon in all_coupons:
         coupon.can_redeem = user_points.available_points >= coupon.points_required
-        coupon.already_redeemed = UserCoupon.objects.filter(user=request.user, coupon=coupon).exists()
+        user_coupon = UserCoupon.objects.filter(user=request.user, coupon=coupon).first()
+        coupon.quantity_owned = user_coupon.quantity if user_coupon else 0
     
     context = {
         'user_points': user_points,
@@ -365,15 +366,19 @@ def redeem_coupon(request):
                 'message': f'Not enough points. You need {coupon.points_required} points but have {user_points.available_points}.'
             })
         
-        # Check if already redeemed
-        if UserCoupon.objects.filter(user=request.user, coupon=coupon).exists():
-            return JsonResponse({
-                'success': False,
-                'message': 'You have already redeemed this coupon.'
-            })
+        # Check if user already has this coupon and update quantity, or create new entry
+        user_coupon, created = UserCoupon.objects.get_or_create(
+            user=request.user,
+            coupon=coupon,
+            defaults={'quantity': 1}
+        )
         
-        # Redeem coupon
-        user_coupon = UserCoupon.objects.create(user=request.user, coupon=coupon)
+        if not created:
+            # User already has this coupon, increment quantity
+            user_coupon.quantity += 1
+            user_coupon.save()
+        
+        # Deduct points
         user_points.redeemed_points += coupon.points_required
         user_points.save()
         

@@ -100,35 +100,6 @@ python manage.py runserver
 
 The application will be available at: `http://127.0.0.1:8000/`
 
-## OpenAI Integration (optional)
-
-To enable improved classification via OpenAI vision/text models:
-
-1. Create and activate a virtual environment and install requirements (includes `openai`):
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install --upgrade pip
-pip install -r requirements.txt
-```
-
-2. Set your OpenAI API key (macOS / Linux):
-
-```bash
-export OPENAI_API_KEY="sk-..."
-```
-
-3. Run the verification script (this will call OpenAI and may incur usage):
-
-```bash
-python scripts/verify_openai.py path/to/photo.jpg
-```
-
-Notes:
-- OpenAI usage is optional; the classifier falls back to local heuristics and ML models if the API key or package is not available.
-- Telemetry of OpenAI responses is appended to `reports/openai_telemetry.csv` for auditing and prompt improvement.
-
 ## Usage
 
 ### User Registration
@@ -240,6 +211,46 @@ DEBUG=False
 ALLOWED_HOSTS=yourdomain.com
 DATABASE_URL=your-database-url
 ```
+
+## AI Classifier — Training & Usage
+
+This project includes an image-based waste classifier located at `waste/waste_classifier.py` and a transfer-learning training helper at `waste/train_classifier.py`.
+
+- Dataset layout expected by the training script:
+	- `data/train/biodegradable/*`
+	- `data/train/plastic/*`
+	- `data/train/ewaste/*`
+	- `data/train/metal/*`
+	- `data/train/glass/*`
+	- `data/train/hazardous/*`
+
+- Quick dry-run (builds model and saves initial weights):
+```bash
+./.venv/bin/python -m waste.train_classifier --dry-run
+# or: python3 -m waste.train_classifier --dry-run
+```
+
+- Train (example short run):
+```bash
+./.venv/bin/python -m waste.train_classifier --data data/train --epochs 10 --batch 16
+```
+
+- Avoid downloading ImageNet weights (useful in restricted/SSL-failing environments):
+	- Train without ImageNet weights:
+```bash
+./.venv/bin/python -m waste.train_classifier --data data/train --epochs 10 --batch 16 --weights none
+```
+	- By default the classifier will initialize base models without downloading ImageNet weights. To explicitly allow runtime ImageNet weight downloads set the environment variable `WASTE_LOAD_IMAGENET=1` before running the app or scripts.
+
+- Trained artifacts and integration:
+	- Fine-tuned weights saved to `waste/model_weights/mobilenet_finetuned.weights.h5`
+	- Class index mapping saved to `waste/model_weights/class_indices.json`
+	- `waste/waste_classifier.py` will automatically load the fine-tuned weights (if present) and use them for classification.
+
+- Notes:
+	- For best accuracy train with ImageNet initialization (if available) and a sufficiently large, real dataset.
+	- If you encounter SSL/certificate errors when downloading weights, use `--weights none` during training and set `WASTE_LOAD_IMAGENET=1` only on machines with working certificate chains.
+
 
 ## Security Notes
 

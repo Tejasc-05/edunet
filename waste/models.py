@@ -128,16 +128,16 @@ class Coupon(models.Model):
 
 
 class UserCoupon(models.Model):
-    """Track redeemed coupons by users"""
+    """Track redeemed coupons by users - allows multiple of same coupon"""
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='redeemed_coupons')
     coupon = models.ForeignKey(Coupon, on_delete=models.CASCADE)
-    redeemed_at = models.DateTimeField(auto_now_add=True)
-    used = models.BooleanField(default=False)
-    used_at = models.DateTimeField(null=True, blank=True)
+    quantity = models.IntegerField(default=1)  # Number of this coupon owned
+    first_redeemed_at = models.DateTimeField(auto_now_add=True)
+    last_updated = models.DateTimeField(auto_now=True)
     
     class Meta:
-        unique_together = ('user', 'coupon')
-        ordering = ['-redeemed_at']
+        unique_together = ('user', 'coupon')  # Still unique per user-coupon pair, but tracks quantity
+        ordering = ['-last_updated']
     
     def __str__(self):
         return f"{self.user.username} - {self.coupon.coupon_code}"

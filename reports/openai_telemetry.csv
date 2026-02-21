@@ -1,0 +1,2 @@
+timestamp,raw_response,parsed_keys,scores_summary
+2026-02-14T03:23:31.443823,"{""biodegradable"": 0.1, ""plastic"": 0.2, ""ewaste"": 0.4, ""metal"": 0.1, ""glass"": 0.15, ""hazardous"": 0.05}","biodegradable,ewaste,glass,hazardous,metal,plastic","{""biodegradable"": 0.1, ""plastic"": 0.2, ""ewaste"": 0.4, ""metal"": 0.1, ""glass"": 0.15, ""hazardous"": 0.05}"
